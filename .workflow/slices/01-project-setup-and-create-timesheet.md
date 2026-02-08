@@ -9,11 +9,12 @@ As a developer, I want to create a timesheet entry in bexio via an MCP tool so t
 - Framework: `go test`
 
 ## Shell Boundaries
-- HTTP: BexioClient — calls `POST /2.0/timesheet` on api.bexio.com
-- CLI: `main.go` — starts MCP server on stdio
+- CLI shell: `main.go` — JSON-RPC over stdio, request dispatch, env wiring
+- HTTP shell: `bexio_client.go` — authenticated `POST /2.0/timesheet` to bexio API
 
 ## Functional Core
-Discovered via TDD.
+- No standalone pure core class yet in this slice.
+- Shared domain data structures live in `timesheet.go` and are used by both shells.
 
 ## Acceptance Criterion
 Given a running MCP server with a valid bexio API token  
@@ -32,3 +33,10 @@ Then a timesheet entry is created in bexio and the tool returns the created entr
 
 ## Uses
 None (greenfield)
+
+## Implemented
+- `main.go`
+- `bexio_client.go`
+- `timesheet.go`
+- `server_test.go`
+- `bexio_client_test.go`

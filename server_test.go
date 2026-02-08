@@ -64,7 +64,7 @@ func TestCreateTimesheetAcceptance(t *testing.T) {
 				Method:  "tools/call",
 				Params: toolCallParams{
 					Name: "create_timesheet",
-					Arguments: createTimesheetArgs{
+					Arguments: bexioCreateTimesheetRequest{
 						UserID:          42,
 						AllowableBill:   true,
 						ClientServiceID: 99,
@@ -111,19 +111,9 @@ type initializeParams struct {
 	ClientInfo      clientInfo     `json:"clientInfo"`
 }
 
-type createTimesheetArgs struct {
-	UserID          int           `json:"user_id"`
-	AllowableBill   bool          `json:"allowable_bill"`
-	ClientServiceID int           `json:"client_service_id"`
-	Tracking        trackingRange `json:"tracking"`
-	Text            string        `json:"text,omitempty"`
-	ContactID       *int          `json:"contact_id,omitempty"`
-	PrProjectID     *int          `json:"pr_project_id,omitempty"`
-}
-
 type toolCallParams struct {
-	Name      string              `json:"name"`
-	Arguments createTimesheetArgs `json:"arguments"`
+	Name      string                      `json:"name"`
+	Arguments bexioCreateTimesheetRequest `json:"arguments"`
 }
 
 type jsonRPCRequest struct {

@@ -47,6 +47,10 @@ type rpcToolCallResult struct {
 	StructuredContent bexioTimesheet `json:"structuredContent"`
 }
 
+type timesheetCreator interface {
+	CreateTimesheet(ctx context.Context, req bexioCreateTimesheetRequest) (bexioTimesheet, error)
+}
+
 func main() {
 	cfg := config{
 		apiToken:   os.Getenv("BEXIO_API_TOKEN"),
@@ -88,7 +92,7 @@ func run(stdin io.Reader, stdout io.Writer, cfg config) error {
 	}
 }
 
-func handleRequest(ctx context.Context, req rpcRequest, client BexioClient) (rpcResponse, bool) {
+func handleRequest(ctx context.Context, req rpcRequest, client timesheetCreator) (rpcResponse, bool) {
 	if req.ID == nil {
 		return rpcResponse{}, false
 	}
@@ -164,7 +168,7 @@ func readPayload(reader *bufio.Reader) ([]byte, error) {
 
 	payload := make([]byte, contentLength)
 	if _, err := io.ReadFull(reader, payload); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read payload bytes: %w", err)
 	}
 	return payload, nil
 }
