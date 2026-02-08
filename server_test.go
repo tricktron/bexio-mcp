@@ -111,13 +111,6 @@ type initializeParams struct {
 	ClientInfo      clientInfo     `json:"clientInfo"`
 }
 
-type trackingRange struct {
-	Type  string `json:"type"`
-	Date  string `json:"date,omitempty"`
-	Start string `json:"start"`
-	End   string `json:"end"`
-}
-
 type createTimesheetArgs struct {
 	UserID          int           `json:"user_id"`
 	AllowableBill   bool          `json:"allowable_bill"`
@@ -154,27 +147,6 @@ type jsonRPCError struct {
 
 type toolCallResult struct {
 	StructuredContent bexioTimesheet `json:"structuredContent"`
-}
-
-type bexioTimesheet struct {
-	ID              int           `json:"id"`
-	UserID          int           `json:"user_id"`
-	AllowableBill   bool          `json:"allowable_bill"`
-	ClientServiceID int           `json:"client_service_id"`
-	Text            string        `json:"text,omitempty"`
-	ContactID       *int          `json:"contact_id,omitempty"`
-	PrProjectID     *int          `json:"pr_project_id,omitempty"`
-	Tracking        trackingRange `json:"tracking"`
-}
-
-type bexioCreateTimesheetRequest struct {
-	UserID          int           `json:"user_id"`
-	AllowableBill   bool          `json:"allowable_bill"`
-	ClientServiceID int           `json:"client_service_id"`
-	Tracking        trackingRange `json:"tracking"`
-	Text            string        `json:"text,omitempty"`
-	ContactID       *int          `json:"contact_id,omitempty"`
-	PrProjectID     *int          `json:"pr_project_id,omitempty"`
 }
 
 type fakeBexioCapturedRequest struct {

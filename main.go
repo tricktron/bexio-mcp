@@ -3,10 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -36,6 +38,15 @@ type rpcError struct {
 	Message string `json:"message"`
 }
 
+type rpcToolCallParams struct {
+	Name      string                      `json:"name"`
+	Arguments bexioCreateTimesheetRequest `json:"arguments"`
+}
+
+type rpcToolCallResult struct {
+	StructuredContent bexioTimesheet `json:"structuredContent"`
+}
+
 func main() {
 	cfg := config{
 		apiToken:   os.Getenv("BEXIO_API_TOKEN"),
@@ -49,7 +60,7 @@ func main() {
 }
 
 func run(stdin io.Reader, stdout io.Writer, cfg config) error {
-	_ = cfg
+	client := NewBexioClient(cfg.apiBaseURL, cfg.apiToken, http.DefaultClient)
 
 	reader := bufio.NewReader(stdin)
 	for {
@@ -66,7 +77,7 @@ func run(stdin io.Reader, stdout io.Writer, cfg config) error {
 			return fmt.Errorf("decode request: %w", err)
 		}
 
-		resp, shouldRespond := handleRequest(req)
+		resp, shouldRespond := handleRequest(context.Background(), req, client)
 		if !shouldRespond {
 			continue
 		}
@@ -77,7 +88,7 @@ func run(stdin io.Reader, stdout io.Writer, cfg config) error {
 	}
 }
 
-func handleRequest(req rpcRequest) (rpcResponse, bool) {
+func handleRequest(ctx context.Context, req rpcRequest, client BexioClient) (rpcResponse, bool) {
 	if req.ID == nil {
 		return rpcResponse{}, false
 	}
@@ -95,7 +106,23 @@ func handleRequest(req rpcRequest) (rpcResponse, bool) {
 		}
 		return resp, true
 	case "tools/call":
-		resp.Result = map[string]any{}
+		var params rpcToolCallParams
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			resp.Error = &rpcError{Code: -32602, Message: "invalid params"}
+			return resp, true
+		}
+		if params.Name != "create_timesheet" {
+			resp.Error = &rpcError{Code: -32601, Message: "method not found"}
+			return resp, true
+		}
+
+		created, err := client.CreateTimesheet(ctx, params.Arguments)
+		if err != nil {
+			resp.Error = &rpcError{Code: -32603, Message: err.Error()}
+			return resp, true
+		}
+
+		resp.Result = rpcToolCallResult{StructuredContent: created}
 		return resp, true
 	default:
 		resp.Error = &rpcError{Code: -32601, Message: "method not found"}
