@@ -1,0 +1,1608 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "bexio API",
+    "version": "3.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.bexio.com",
+      "description": "Live Server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "OpenIDConnect": {
+        "type": "openIdConnect",
+        "description": "OpenID Connect 1.0 is a simple identity layer on top of the OAuth 2.0 protocol. It allows Clients to verify the identity of the End-User based on the authentication performed by an Authorization Server, as well as to obtain basic profile information about the End-User in an interoperable and REST-like manner.",
+        "openIdConnectUrl": "https://auth.bexio.com/realms/bexio/.well-known/openid-configuration"
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "paths": {
+    "/2.0/pr_project": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Fetch a list of projects",
+        "description": "This action fetches a list of all projects",
+        "operationId": "v2ListProjects",
+        "parameters": [
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "Defines the order of the results. Multiple sort parameters can be combined by using a comma separator. `_asc` and `_desc` can be appended to any parameter to either sort ascending (default) or descending.",
+            "required": false,
+            "style": "form",
+            "explode": false,
+            "schema": {
+              "enum": [
+                "id",
+                "name"
+              ],
+              "type": "string",
+              "default": "id"
+            },
+            "example": "name"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Limit the number of results (max is 2000)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 500,
+              "example": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Skip over a number of elements by specifying an offset value for the query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0,
+              "example": 0
+            }
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "title": "Project",
+                    "required": [
+                      "contact_id",
+                      "name",
+                      "pr_project_type_id",
+                      "pr_state_id",
+                      "user_id"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "readOnly": true,
+                        "example": 2
+                      },
+                      "uuid": {
+                        "maxLength": 36,
+                        "type": "string",
+                        "description": "The uuid of the project.",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "example": "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+                      },
+                      "nr": {
+                        "type": "string",
+                        "readOnly": true,
+                        "example": "000002"
+                      },
+                      "document_nr": {
+                        "type": "string",
+                        "description": "Can not be used if \u201cautomatic numbering\u201d is activated in frontend-settings. Required if \u201cautomatic numbering\u201d deactivated. https://help.bexio.com/s/article/000001721",
+                        "writeOnly": true,
+                        "example": "project name"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Villa Kunterbunt"
+                      },
+                      "start_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "example": "2019-07-12 00:00:00"
+                      },
+                      "end_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "example": null
+                      },
+                      "comment": {
+                        "type": "string",
+                        "example": ""
+                      },
+                      "pr_state_id": {
+                        "type": "integer",
+                        "description": "References a [project status object](#operation/v2ListProjectStatus)",
+                        "example": 2
+                      },
+                      "pr_project_type_id": {
+                        "type": "integer",
+                        "description": "References a [project type object](#operation/v2ListProjectType)",
+                        "example": 2
+                      },
+                      "contact_id": {
+                        "type": "integer",
+                        "description": "References a [contact object](#operation/v2ListContacts)",
+                        "example": 2
+                      },
+                      "contact_sub_id": {
+                        "type": "integer",
+                        "description": "References a [contact object](#operation/v2ListContacts)",
+                        "nullable": true,
+                        "example": null
+                      },
+                      "pr_invoice_type_id": {
+                        "type": "integer",
+                        "description": "The following invoice types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_hourly_rate_service | Hourly rate for client services |\n| 2 | type_hourly_rate_employee | Hourly rate for employee |\n| 3 | type_hourly_rate_project | Hourly rate for project |\n| 4 | type_fix | Fix price for project |\n",
+                        "nullable": true,
+                        "example": 3
+                      },
+                      "pr_invoice_type_amount": {
+                        "type": "string",
+                        "description": "This field can only be edited if the `pr_invoice_type` is set. (Only supported for invoice types: `type_hourly_rate_project` and `type_fix`)",
+                        "example": "230.00"
+                      },
+                      "pr_budget_type_id": {
+                        "type": "number",
+                        "description": "The following budget types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_budgeted_costs\t | Total budget costs |\n| 2 | type_budgeted_hours | Total budget hours |\n| 3 | type_service_budget | Budget for each client services |\n| 4 | type_service_employees | Budget for each employee |\n",
+                        "nullable": true,
+                        "example": 1
+                      },
+                      "pr_budget_type_amount": {
+                        "type": "string",
+                        "description": "This field can only be edited if the `pr_budget_type` is set. (Only supported for budget types: `type_budgeted_costs` and `type_budgeted_hours`)",
+                        "example": "200.00"
+                      },
+                      "user_id": {
+                        "type": "integer",
+                        "description": "References a [user object](#operation/v3ListUsers)",
+                        "example": 1
+                      }
+                    }
+                  },
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_show"
+            ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Create project",
+        "description": "This action creates a new project",
+        "operationId": "v2CreateProject",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "Project",
+                "required": [
+                  "contact_id",
+                  "name",
+                  "pr_project_type_id",
+                  "pr_state_id",
+                  "user_id"
+                ],
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true,
+                    "example": 2
+                  },
+                  "uuid": {
+                    "maxLength": 36,
+                    "type": "string",
+                    "description": "The uuid of the project.",
+                    "format": "uuid",
+                    "readOnly": true,
+                    "example": "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+                  },
+                  "nr": {
+                    "type": "string",
+                    "readOnly": true,
+                    "example": "000002"
+                  },
+                  "document_nr": {
+                    "type": "string",
+                    "description": "Can not be used if \u201cautomatic numbering\u201d is activated in frontend-settings. Required if \u201cautomatic numbering\u201d deactivated. https://help.bexio.com/s/article/000001721",
+                    "writeOnly": true,
+                    "example": "project name"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Villa Kunterbunt"
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "example": "2019-07-12 00:00:00"
+                  },
+                  "end_date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "example": null
+                  },
+                  "comment": {
+                    "type": "string",
+                    "example": ""
+                  },
+                  "pr_state_id": {
+                    "type": "integer",
+                    "description": "References a [project status object](#operation/v2ListProjectStatus)",
+                    "example": 2
+                  },
+                  "pr_project_type_id": {
+                    "type": "integer",
+                    "description": "References a [project type object](#operation/v2ListProjectType)",
+                    "example": 2
+                  },
+                  "contact_id": {
+                    "type": "integer",
+                    "description": "References a [contact object](#operation/v2ListContacts)",
+                    "example": 2
+                  },
+                  "contact_sub_id": {
+                    "type": "integer",
+                    "description": "References a [contact object](#operation/v2ListContacts)",
+                    "nullable": true,
+                    "example": null
+                  },
+                  "pr_invoice_type_id": {
+                    "type": "integer",
+                    "description": "The following invoice types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_hourly_rate_service | Hourly rate for client services |\n| 2 | type_hourly_rate_employee | Hourly rate for employee |\n| 3 | type_hourly_rate_project | Hourly rate for project |\n| 4 | type_fix | Fix price for project |\n",
+                    "nullable": true,
+                    "example": 3
+                  },
+                  "pr_invoice_type_amount": {
+                    "type": "string",
+                    "description": "This field can only be edited if the `pr_invoice_type` is set. (Only supported for invoice types: `type_hourly_rate_project` and `type_fix`)",
+                    "example": "230.00"
+                  },
+                  "pr_budget_type_id": {
+                    "type": "number",
+                    "description": "The following budget types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_budgeted_costs\t | Total budget costs |\n| 2 | type_budgeted_hours | Total budget hours |\n| 3 | type_service_budget | Budget for each client services |\n| 4 | type_service_employees | Budget for each employee |\n",
+                    "nullable": true,
+                    "example": 1
+                  },
+                  "pr_budget_type_amount": {
+                    "type": "string",
+                    "description": "This field can only be edited if the `pr_budget_type` is set. (Only supported for budget types: `type_budgeted_costs` and `type_budgeted_hours`)",
+                    "example": "200.00"
+                  },
+                  "user_id": {
+                    "type": "integer",
+                    "description": "References a [user object](#operation/v3ListUsers)",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Project",
+                  "required": [
+                    "contact_id",
+                    "name",
+                    "pr_project_type_id",
+                    "pr_state_id",
+                    "user_id"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "readOnly": true,
+                      "example": 2
+                    },
+                    "uuid": {
+                      "maxLength": 36,
+                      "type": "string",
+                      "description": "The uuid of the project.",
+                      "format": "uuid",
+                      "readOnly": true,
+                      "example": "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+                    },
+                    "nr": {
+                      "type": "string",
+                      "readOnly": true,
+                      "example": "000002"
+                    },
+                    "document_nr": {
+                      "type": "string",
+                      "description": "Can not be used if \u201cautomatic numbering\u201d is activated in frontend-settings. Required if \u201cautomatic numbering\u201d deactivated. https://help.bexio.com/s/article/000001721",
+                      "writeOnly": true,
+                      "example": "project name"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Villa Kunterbunt"
+                    },
+                    "start_date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": "2019-07-12 00:00:00"
+                    },
+                    "end_date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "comment": {
+                      "type": "string",
+                      "example": ""
+                    },
+                    "pr_state_id": {
+                      "type": "integer",
+                      "description": "References a [project status object](#operation/v2ListProjectStatus)",
+                      "example": 2
+                    },
+                    "pr_project_type_id": {
+                      "type": "integer",
+                      "description": "References a [project type object](#operation/v2ListProjectType)",
+                      "example": 2
+                    },
+                    "contact_id": {
+                      "type": "integer",
+                      "description": "References a [contact object](#operation/v2ListContacts)",
+                      "example": 2
+                    },
+                    "contact_sub_id": {
+                      "type": "integer",
+                      "description": "References a [contact object](#operation/v2ListContacts)",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "pr_invoice_type_id": {
+                      "type": "integer",
+                      "description": "The following invoice types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_hourly_rate_service | Hourly rate for client services |\n| 2 | type_hourly_rate_employee | Hourly rate for employee |\n| 3 | type_hourly_rate_project | Hourly rate for project |\n| 4 | type_fix | Fix price for project |\n",
+                      "nullable": true,
+                      "example": 3
+                    },
+                    "pr_invoice_type_amount": {
+                      "type": "string",
+                      "description": "This field can only be edited if the `pr_invoice_type` is set. (Only supported for invoice types: `type_hourly_rate_project` and `type_fix`)",
+                      "example": "230.00"
+                    },
+                    "pr_budget_type_id": {
+                      "type": "number",
+                      "description": "The following budget types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_budgeted_costs\t | Total budget costs |\n| 2 | type_budgeted_hours | Total budget hours |\n| 3 | type_service_budget | Budget for each client services |\n| 4 | type_service_employees | Budget for each employee |\n",
+                      "nullable": true,
+                      "example": 1
+                    },
+                    "pr_budget_type_amount": {
+                      "type": "string",
+                      "description": "This field can only be edited if the `pr_budget_type` is set. (Only supported for budget types: `type_budgeted_costs` and `type_budgeted_hours`)",
+                      "example": "200.00"
+                    },
+                    "user_id": {
+                      "type": "integer",
+                      "description": "References a [user object](#operation/v3ListUsers)",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Error422",
+                  "type": "object",
+                  "properties": {
+                    "error_code": {
+                      "type": "integer",
+                      "description": "The status code of the HTTP response",
+                      "format": "int32"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "A message describing the error"
+                    }
+                  },
+                  "example": {
+                    "error_code": 422,
+                    "message": "Unprocessable Entity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_edit"
+            ]
+          }
+        ]
+      }
+    },
+    "/2.0/pr_project/search": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Search projects",
+        "description": "Search projects via query. Please refer to the [Search](#section/API-basics/Search) section for detailed instructions.<br>\nThe following search fields are supported:\n* `name`\n* `contact_id`\n* `pr_state_id`\n",
+        "operationId": "v2SearchProjects",
+        "parameters": [
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "Defines the order of the results. Multiple sort parameters can be combined by using a comma separator. `_asc` and `_desc` can be appended to any parameter to either sort ascending (default) or descending.",
+            "required": false,
+            "style": "form",
+            "explode": false,
+            "schema": {
+              "enum": [
+                "id",
+                "name"
+              ],
+              "type": "string",
+              "default": "id"
+            },
+            "example": "name"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Limit the number of results (max is 2000)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 500,
+              "example": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Skip over a number of elements by specifying an offset value for the query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0,
+              "example": 0
+            }
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "v2Search",
+                "type": "array",
+                "items": {
+                  "title": "v2SearchField",
+                  "required": [
+                    "field",
+                    "value"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "maxLength": 255,
+                      "type": "string",
+                      "description": "Field which should be search over",
+                      "example": "search_field"
+                    },
+                    "value": {
+                      "maxLength": 255,
+                      "type": "string",
+                      "description": "Value to search for",
+                      "example": "search term"
+                    },
+                    "criteria": {
+                      "title": "v2SearchCriteria",
+                      "enum": [
+                        "=",
+                        "equal",
+                        "!=",
+                        "not_equal",
+                        ">",
+                        "greater_than",
+                        ">=",
+                        "greater_equal",
+                        "<",
+                        "less_than",
+                        "<=",
+                        "less_equal",
+                        "like",
+                        "not_like",
+                        "is_null",
+                        "not_null",
+                        "in",
+                        "not_in"
+                      ],
+                      "type": "string",
+                      "default": "like",
+                      "example": "=",
+                      "x-enum-elements": [
+                        {
+                          "name": "=",
+                          "description": "equal"
+                        },
+                        {
+                          "name": "equal",
+                          "description": "equal"
+                        },
+                        {
+                          "name": "!=",
+                          "description": "not equal"
+                        },
+                        {
+                          "name": "not_equal",
+                          "description": "not equal"
+                        },
+                        {
+                          "name": ">",
+                          "description": "greater than"
+                        },
+                        {
+                          "name": "greater_than",
+                          "description": "greater than"
+                        },
+                        {
+                          "name": ">=",
+                          "description": "greater or equal"
+                        },
+                        {
+                          "name": "greater_equal",
+                          "description": "greater or equal"
+                        },
+                        {
+                          "name": "<",
+                          "description": "less than"
+                        },
+                        {
+                          "name": "less_than",
+                          "description": "less than"
+                        },
+                        {
+                          "name": "<=",
+                          "description": "less or equal"
+                        },
+                        {
+                          "name": "less_equal",
+                          "description": "less or equal"
+                        },
+                        {
+                          "name": "like",
+                          "description": "like"
+                        },
+                        {
+                          "name": "not_like",
+                          "description": "not like"
+                        },
+                        {
+                          "name": "is_null",
+                          "description": "null"
+                        },
+                        {
+                          "name": "not_null",
+                          "description": "not null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "title": "Project",
+                    "required": [
+                      "contact_id",
+                      "name",
+                      "pr_project_type_id",
+                      "pr_state_id",
+                      "user_id"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "readOnly": true,
+                        "example": 2
+                      },
+                      "uuid": {
+                        "maxLength": 36,
+                        "type": "string",
+                        "description": "The uuid of the project.",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "example": "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+                      },
+                      "nr": {
+                        "type": "string",
+                        "readOnly": true,
+                        "example": "000002"
+                      },
+                      "document_nr": {
+                        "type": "string",
+                        "description": "Can not be used if \u201cautomatic numbering\u201d is activated in frontend-settings. Required if \u201cautomatic numbering\u201d deactivated. https://help.bexio.com/s/article/000001721",
+                        "writeOnly": true,
+                        "example": "project name"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Villa Kunterbunt"
+                      },
+                      "start_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "example": "2019-07-12 00:00:00"
+                      },
+                      "end_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "example": null
+                      },
+                      "comment": {
+                        "type": "string",
+                        "example": ""
+                      },
+                      "pr_state_id": {
+                        "type": "integer",
+                        "description": "References a [project status object](#operation/v2ListProjectStatus)",
+                        "example": 2
+                      },
+                      "pr_project_type_id": {
+                        "type": "integer",
+                        "description": "References a [project type object](#operation/v2ListProjectType)",
+                        "example": 2
+                      },
+                      "contact_id": {
+                        "type": "integer",
+                        "description": "References a [contact object](#operation/v2ListContacts)",
+                        "example": 2
+                      },
+                      "contact_sub_id": {
+                        "type": "integer",
+                        "description": "References a [contact object](#operation/v2ListContacts)",
+                        "nullable": true,
+                        "example": null
+                      },
+                      "pr_invoice_type_id": {
+                        "type": "integer",
+                        "description": "The following invoice types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_hourly_rate_service | Hourly rate for client services |\n| 2 | type_hourly_rate_employee | Hourly rate for employee |\n| 3 | type_hourly_rate_project | Hourly rate for project |\n| 4 | type_fix | Fix price for project |\n",
+                        "nullable": true,
+                        "example": 3
+                      },
+                      "pr_invoice_type_amount": {
+                        "type": "string",
+                        "description": "This field can only be edited if the `pr_invoice_type` is set. (Only supported for invoice types: `type_hourly_rate_project` and `type_fix`)",
+                        "example": "230.00"
+                      },
+                      "pr_budget_type_id": {
+                        "type": "number",
+                        "description": "The following budget types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_budgeted_costs\t | Total budget costs |\n| 2 | type_budgeted_hours | Total budget hours |\n| 3 | type_service_budget | Budget for each client services |\n| 4 | type_service_employees | Budget for each employee |\n",
+                        "nullable": true,
+                        "example": 1
+                      },
+                      "pr_budget_type_amount": {
+                        "type": "string",
+                        "description": "This field can only be edited if the `pr_budget_type` is set. (Only supported for budget types: `type_budgeted_costs` and `type_budgeted_hours`)",
+                        "example": "200.00"
+                      },
+                      "user_id": {
+                        "type": "integer",
+                        "description": "References a [user object](#operation/v3ListUsers)",
+                        "example": 1
+                      }
+                    }
+                  },
+                  "description": "OK"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Error422",
+                  "type": "object",
+                  "properties": {
+                    "error_code": {
+                      "type": "integer",
+                      "description": "The status code of the HTTP response",
+                      "format": "int32"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "A message describing the error"
+                    }
+                  },
+                  "example": {
+                    "error_code": 422,
+                    "message": "Unprocessable Entity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_show"
+            ]
+          }
+        ]
+      }
+    },
+    "/2.0/pr_project/{project_id}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Fetch a project",
+        "description": "This action fetches a single project",
+        "operationId": "v2ShowProject",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "the id of the project",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Project",
+                  "required": [
+                    "contact_id",
+                    "name",
+                    "pr_project_type_id",
+                    "pr_state_id",
+                    "user_id"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "readOnly": true,
+                      "example": 2
+                    },
+                    "uuid": {
+                      "maxLength": 36,
+                      "type": "string",
+                      "description": "The uuid of the project.",
+                      "format": "uuid",
+                      "readOnly": true,
+                      "example": "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+                    },
+                    "nr": {
+                      "type": "string",
+                      "readOnly": true,
+                      "example": "000002"
+                    },
+                    "document_nr": {
+                      "type": "string",
+                      "description": "Can not be used if \u201cautomatic numbering\u201d is activated in frontend-settings. Required if \u201cautomatic numbering\u201d deactivated. https://help.bexio.com/s/article/000001721",
+                      "writeOnly": true,
+                      "example": "project name"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Villa Kunterbunt"
+                    },
+                    "start_date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": "2019-07-12 00:00:00"
+                    },
+                    "end_date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "comment": {
+                      "type": "string",
+                      "example": ""
+                    },
+                    "pr_state_id": {
+                      "type": "integer",
+                      "description": "References a [project status object](#operation/v2ListProjectStatus)",
+                      "example": 2
+                    },
+                    "pr_project_type_id": {
+                      "type": "integer",
+                      "description": "References a [project type object](#operation/v2ListProjectType)",
+                      "example": 2
+                    },
+                    "contact_id": {
+                      "type": "integer",
+                      "description": "References a [contact object](#operation/v2ListContacts)",
+                      "example": 2
+                    },
+                    "contact_sub_id": {
+                      "type": "integer",
+                      "description": "References a [contact object](#operation/v2ListContacts)",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "pr_invoice_type_id": {
+                      "type": "integer",
+                      "description": "The following invoice types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_hourly_rate_service | Hourly rate for client services |\n| 2 | type_hourly_rate_employee | Hourly rate for employee |\n| 3 | type_hourly_rate_project | Hourly rate for project |\n| 4 | type_fix | Fix price for project |\n",
+                      "nullable": true,
+                      "example": 3
+                    },
+                    "pr_invoice_type_amount": {
+                      "type": "string",
+                      "description": "This field can only be edited if the `pr_invoice_type` is set. (Only supported for invoice types: `type_hourly_rate_project` and `type_fix`)",
+                      "example": "230.00"
+                    },
+                    "pr_budget_type_id": {
+                      "type": "number",
+                      "description": "The following budget types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_budgeted_costs\t | Total budget costs |\n| 2 | type_budgeted_hours | Total budget hours |\n| 3 | type_service_budget | Budget for each client services |\n| 4 | type_service_employees | Budget for each employee |\n",
+                      "nullable": true,
+                      "example": 1
+                    },
+                    "pr_budget_type_amount": {
+                      "type": "string",
+                      "description": "This field can only be edited if the `pr_budget_type` is set. (Only supported for budget types: `type_budgeted_costs` and `type_budgeted_hours`)",
+                      "example": "200.00"
+                    },
+                    "user_id": {
+                      "type": "integer",
+                      "description": "References a [user object](#operation/v3ListUsers)",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_show"
+            ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Edit a project",
+        "description": "This action edits a single project",
+        "operationId": "v2EditProject",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "the id of the project",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "Project",
+                "required": [
+                  "contact_id",
+                  "name",
+                  "pr_project_type_id",
+                  "pr_state_id",
+                  "user_id"
+                ],
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true,
+                    "example": 2
+                  },
+                  "uuid": {
+                    "maxLength": 36,
+                    "type": "string",
+                    "description": "The uuid of the project.",
+                    "format": "uuid",
+                    "readOnly": true,
+                    "example": "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+                  },
+                  "nr": {
+                    "type": "string",
+                    "readOnly": true,
+                    "example": "000002"
+                  },
+                  "document_nr": {
+                    "type": "string",
+                    "description": "Can not be used if \u201cautomatic numbering\u201d is activated in frontend-settings. Required if \u201cautomatic numbering\u201d deactivated. https://help.bexio.com/s/article/000001721",
+                    "writeOnly": true,
+                    "example": "project name"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Villa Kunterbunt"
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "example": "2019-07-12 00:00:00"
+                  },
+                  "end_date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "example": null
+                  },
+                  "comment": {
+                    "type": "string",
+                    "example": ""
+                  },
+                  "pr_state_id": {
+                    "type": "integer",
+                    "description": "References a [project status object](#operation/v2ListProjectStatus)",
+                    "example": 2
+                  },
+                  "pr_project_type_id": {
+                    "type": "integer",
+                    "description": "References a [project type object](#operation/v2ListProjectType)",
+                    "example": 2
+                  },
+                  "contact_id": {
+                    "type": "integer",
+                    "description": "References a [contact object](#operation/v2ListContacts)",
+                    "example": 2
+                  },
+                  "contact_sub_id": {
+                    "type": "integer",
+                    "description": "References a [contact object](#operation/v2ListContacts)",
+                    "nullable": true,
+                    "example": null
+                  },
+                  "pr_invoice_type_id": {
+                    "type": "integer",
+                    "description": "The following invoice types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_hourly_rate_service | Hourly rate for client services |\n| 2 | type_hourly_rate_employee | Hourly rate for employee |\n| 3 | type_hourly_rate_project | Hourly rate for project |\n| 4 | type_fix | Fix price for project |\n",
+                    "nullable": true,
+                    "example": 3
+                  },
+                  "pr_invoice_type_amount": {
+                    "type": "string",
+                    "description": "This field can only be edited if the `pr_invoice_type` is set. (Only supported for invoice types: `type_hourly_rate_project` and `type_fix`)",
+                    "example": "230.00"
+                  },
+                  "pr_budget_type_id": {
+                    "type": "number",
+                    "description": "The following budget types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_budgeted_costs\t | Total budget costs |\n| 2 | type_budgeted_hours | Total budget hours |\n| 3 | type_service_budget | Budget for each client services |\n| 4 | type_service_employees | Budget for each employee |\n",
+                    "nullable": true,
+                    "example": 1
+                  },
+                  "pr_budget_type_amount": {
+                    "type": "string",
+                    "description": "This field can only be edited if the `pr_budget_type` is set. (Only supported for budget types: `type_budgeted_costs` and `type_budgeted_hours`)",
+                    "example": "200.00"
+                  },
+                  "user_id": {
+                    "type": "integer",
+                    "description": "References a [user object](#operation/v3ListUsers)",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Project",
+                  "required": [
+                    "contact_id",
+                    "name",
+                    "pr_project_type_id",
+                    "pr_state_id",
+                    "user_id"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "readOnly": true,
+                      "example": 2
+                    },
+                    "uuid": {
+                      "maxLength": 36,
+                      "type": "string",
+                      "description": "The uuid of the project.",
+                      "format": "uuid",
+                      "readOnly": true,
+                      "example": "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+                    },
+                    "nr": {
+                      "type": "string",
+                      "readOnly": true,
+                      "example": "000002"
+                    },
+                    "document_nr": {
+                      "type": "string",
+                      "description": "Can not be used if \u201cautomatic numbering\u201d is activated in frontend-settings. Required if \u201cautomatic numbering\u201d deactivated. https://help.bexio.com/s/article/000001721",
+                      "writeOnly": true,
+                      "example": "project name"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Villa Kunterbunt"
+                    },
+                    "start_date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": "2019-07-12 00:00:00"
+                    },
+                    "end_date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "comment": {
+                      "type": "string",
+                      "example": ""
+                    },
+                    "pr_state_id": {
+                      "type": "integer",
+                      "description": "References a [project status object](#operation/v2ListProjectStatus)",
+                      "example": 2
+                    },
+                    "pr_project_type_id": {
+                      "type": "integer",
+                      "description": "References a [project type object](#operation/v2ListProjectType)",
+                      "example": 2
+                    },
+                    "contact_id": {
+                      "type": "integer",
+                      "description": "References a [contact object](#operation/v2ListContacts)",
+                      "example": 2
+                    },
+                    "contact_sub_id": {
+                      "type": "integer",
+                      "description": "References a [contact object](#operation/v2ListContacts)",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "pr_invoice_type_id": {
+                      "type": "integer",
+                      "description": "The following invoice types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_hourly_rate_service | Hourly rate for client services |\n| 2 | type_hourly_rate_employee | Hourly rate for employee |\n| 3 | type_hourly_rate_project | Hourly rate for project |\n| 4 | type_fix | Fix price for project |\n",
+                      "nullable": true,
+                      "example": 3
+                    },
+                    "pr_invoice_type_amount": {
+                      "type": "string",
+                      "description": "This field can only be edited if the `pr_invoice_type` is set. (Only supported for invoice types: `type_hourly_rate_project` and `type_fix`)",
+                      "example": "230.00"
+                    },
+                    "pr_budget_type_id": {
+                      "type": "number",
+                      "description": "The following budget types are available:\n\n| Id | Name | Description |\n| ------ | ------ | ------ |\n| 1 | type_budgeted_costs\t | Total budget costs |\n| 2 | type_budgeted_hours | Total budget hours |\n| 3 | type_service_budget | Budget for each client services |\n| 4 | type_service_employees | Budget for each employee |\n",
+                      "nullable": true,
+                      "example": 1
+                    },
+                    "pr_budget_type_amount": {
+                      "type": "string",
+                      "description": "This field can only be edited if the `pr_budget_type` is set. (Only supported for budget types: `type_budgeted_costs` and `type_budgeted_hours`)",
+                      "example": "200.00"
+                    },
+                    "user_id": {
+                      "type": "integer",
+                      "description": "References a [user object](#operation/v3ListUsers)",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Error422",
+                  "type": "object",
+                  "properties": {
+                    "error_code": {
+                      "type": "integer",
+                      "description": "The status code of the HTTP response",
+                      "format": "int32"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "A message describing the error"
+                    }
+                  },
+                  "example": {
+                    "error_code": 422,
+                    "message": "Unprocessable Entity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_edit"
+            ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Delete a project",
+        "description": "This action permanently deletes a project. It cannot be undone.",
+        "operationId": "DeleteProject",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "the id of the project",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "EntryDeleted",
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Describes whether the operation was successful or not",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_edit"
+            ]
+          }
+        ]
+      }
+    },
+    "/2.0/pr_project/{project_id}/archive": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Archive a project",
+        "description": "This action archives a project",
+        "operationId": "v2ArchiveProject",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "the id of the project",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "SuccessResponse",
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Describes whether the operation was successful or not",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_edit"
+            ]
+          }
+        ]
+      }
+    },
+    "/2.0/pr_project/{project_id}/reactivate": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Unarchive a project",
+        "description": "This action unarchives an archived project",
+        "operationId": "v2UnarchiveProject",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "the id of the project",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "SuccessResponse",
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Describes whether the operation was successful or not",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_edit"
+            ]
+          }
+        ]
+      }
+    },
+    "/2.0/pr_project_state": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Project status",
+        "description": "This action fetches a list of project status",
+        "operationId": "v2ListProjectStatus",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "title": "ProjectStatus",
+                    "required": [
+                      "name"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "readOnly": true,
+                        "example": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Active"
+                      }
+                    }
+                  },
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "general"
+            ]
+          }
+        ]
+      }
+    },
+    "/2.0/pr_project_type": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Project types",
+        "description": "This action fetches a list of project types",
+        "operationId": "v2ListProjectType",
+        "parameters": [
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "Defines the order of the results. Multiple sort parameters can be combined by using a comma separator. `_asc` and `_desc` can be appended to any parameter to either sort ascending (default) or descending.",
+            "required": false,
+            "style": "form",
+            "explode": false,
+            "schema": {
+              "enum": [
+                "id",
+                "name"
+              ],
+              "type": "string",
+              "default": "id"
+            },
+            "example": "name"
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "title": "ProjectType",
+                    "required": [
+                      "name"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "readOnly": true,
+                        "example": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Internal Project"
+                      }
+                    }
+                  },
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "general"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

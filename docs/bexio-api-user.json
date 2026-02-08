@@ -1,0 +1,388 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "bexio API"
+  },
+  "servers": [
+    {
+      "url": "https://api.bexio.com",
+      "description": "Live Server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "OpenIDConnect": {
+        "type": "openIdConnect",
+        "description": "OpenID Connect 1.0 is a simple identity layer on top of the OAuth 2.0 protocol. It allows Clients to verify the identity of the End-User based on the authentication performed by an Authorization Server, as well as to obtain basic profile information about the End-User in an interoperable and REST-like manner.",
+        "openIdConnectUrl": "https://auth.bexio.com/realms/bexio/.well-known/openid-configuration"
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "paths": {
+    "/3.0/users": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "summary": "Fetch a list of users",
+        "description": "This action fetches a list of all users",
+        "operationId": "v3ListUsers",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Limit the number of results (max is 2000)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 500,
+              "example": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Skip over a number of elements by specifying an offset value for the query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0,
+              "example": 0
+            }
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Limit": {
+                "description": "Applied limit for the result list",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "example": 500
+              },
+              "X-Offset": {
+                "description": "Applied offset for the result list",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "example": 0
+              },
+              "X-Total-Count": {
+                "description": "Total number of results for the result list",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "example": 1276
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "title": "User",
+                    "required": [
+                      "email"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "The id of the main resource",
+                        "format": "int32",
+                        "readOnly": true,
+                        "example": 4
+                      },
+                      "salutation_type": {
+                        "enum": [
+                          "male",
+                          "female"
+                        ],
+                        "type": "string",
+                        "example": "male"
+                      },
+                      "firstname": {
+                        "maxLength": 80,
+                        "type": "string",
+                        "description": "The first name of the user",
+                        "nullable": true,
+                        "readOnly": true,
+                        "example": "Rudolph"
+                      },
+                      "lastname": {
+                        "maxLength": 80,
+                        "type": "string",
+                        "description": "The last name of the user",
+                        "nullable": true,
+                        "readOnly": true,
+                        "example": "Smith"
+                      },
+                      "email": {
+                        "type": "string",
+                        "description": "The email address of the user. Please note that an email address can only be used once for users.",
+                        "format": "email",
+                        "example": "rudolph.smith@example.com"
+                      },
+                      "is_superadmin": {
+                        "type": "boolean",
+                        "description": "Whether the user is a superadmin or not. Please note this field is only included if the user has the necessary admin rights.",
+                        "readOnly": true,
+                        "example": true
+                      },
+                      "is_accountant": {
+                        "type": "boolean",
+                        "description": "Whether the user is an accountant or not. Please note this field is only included if the user has the necessary admin rights.",
+                        "readOnly": true,
+                        "example": false
+                      }
+                    }
+                  },
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "general"
+            ]
+          }
+        ]
+      }
+    },
+    "/3.0/users/me": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "summary": "Fetch the authenticated user",
+        "description": "This action fetches the user authenticated by the bearer token.",
+        "operationId": "v3ShowMe",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "User",
+                  "required": [
+                    "email"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "description": "The id of the main resource",
+                      "format": "int32",
+                      "readOnly": true,
+                      "example": 4
+                    },
+                    "salutation_type": {
+                      "enum": [
+                        "male",
+                        "female"
+                      ],
+                      "type": "string",
+                      "example": "male"
+                    },
+                    "firstname": {
+                      "maxLength": 80,
+                      "type": "string",
+                      "description": "The first name of the user",
+                      "nullable": true,
+                      "readOnly": true,
+                      "example": "Rudolph"
+                    },
+                    "lastname": {
+                      "maxLength": 80,
+                      "type": "string",
+                      "description": "The last name of the user",
+                      "nullable": true,
+                      "readOnly": true,
+                      "example": "Smith"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "The email address of the user. Please note that an email address can only be used once for users.",
+                      "format": "email",
+                      "example": "rudolph.smith@example.com"
+                    },
+                    "is_superadmin": {
+                      "type": "boolean",
+                      "description": "Whether the user is a superadmin or not. Please note this field is only included if the user has the necessary admin rights.",
+                      "readOnly": true,
+                      "example": true
+                    },
+                    "is_accountant": {
+                      "type": "boolean",
+                      "description": "Whether the user is an accountant or not. Please note this field is only included if the user has the necessary admin rights.",
+                      "readOnly": true,
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "general"
+            ]
+          }
+        ]
+      }
+    },
+    "/3.0/users/{user_id}": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "summary": "Fetch a user",
+        "description": "This action fetches a single user",
+        "operationId": "v3ShowUser",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "the id of the user",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 4
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "User",
+                  "required": [
+                    "email"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "description": "The id of the main resource",
+                      "format": "int32",
+                      "readOnly": true,
+                      "example": 4
+                    },
+                    "salutation_type": {
+                      "enum": [
+                        "male",
+                        "female"
+                      ],
+                      "type": "string",
+                      "example": "male"
+                    },
+                    "firstname": {
+                      "maxLength": 80,
+                      "type": "string",
+                      "description": "The first name of the user",
+                      "nullable": true,
+                      "readOnly": true,
+                      "example": "Rudolph"
+                    },
+                    "lastname": {
+                      "maxLength": 80,
+                      "type": "string",
+                      "description": "The last name of the user",
+                      "nullable": true,
+                      "readOnly": true,
+                      "example": "Smith"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "The email address of the user. Please note that an email address can only be used once for users.",
+                      "format": "email",
+                      "example": "rudolph.smith@example.com"
+                    },
+                    "is_superadmin": {
+                      "type": "boolean",
+                      "description": "Whether the user is a superadmin or not. Please note this field is only included if the user has the necessary admin rights.",
+                      "readOnly": true,
+                      "example": true
+                    },
+                    "is_accountant": {
+                      "type": "boolean",
+                      "description": "Whether the user is an accountant or not. Please note this field is only included if the user has the necessary admin rights.",
+                      "readOnly": true,
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "general"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
