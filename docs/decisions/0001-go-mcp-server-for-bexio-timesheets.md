@@ -9,14 +9,16 @@ We need to automate bexio timesheet logging via natural language. The developer 
 An MCP server exposes bexio timesheet operations as tools, enabling any MCP client (Claude Desktop, VS Code, etc.) to interactively log time via natural language.
 
 ## Decision
-Build the MCP server in **Go** using the official `github.com/modelcontextprotocol/go-sdk/mcp` package.
+Build the MCP server in **Go** with a hand-rolled JSON-RPC 2.0 implementation over stdio.
+
+> **Update (ADR 0002):** Originally planned to use `github.com/modelcontextprotocol/go-sdk/mcp`, but the protocol surface is small enough (initialize, tools/list, tools/call) that a hand-rolled implementation is simpler with zero dependencies. See ADR 0002 for rationale.
 
 ### Why Go over TypeScript
 - Single binary distribution — no runtime dependency, easy to deploy behind corporate proxy
 - `net/http` stdlib — no third-party HTTP library needed for bexio API calls
-- Struct-based JSON Schema generation via `jsonschema-go` — define a Go struct, get both the MCP tool schema and the HTTP request body type for free
+- Struct types serve as both MCP tool schemas and HTTP request/response bodies
 - Fast compile + test cycle for iterative API integration work
-- Go SDK has a stable, settled API (TypeScript SDK v2 is alpha)
+- MCP protocol surface is small enough for a hand-rolled implementation with zero external dependencies
 
 ### Why Go over Python
 - Corporate MITM proxy (BIT Proxy CA) generates certificates missing the Authority Key Identifier extension
@@ -48,8 +50,9 @@ graph LR
 ```
 
 ## Consequences
-- Go module with `go-sdk/mcp` dependency
+- Go module with hand-rolled JSON-RPC 2.0 (zero external production dependencies)
 - Single binary, distributed via `go install` or direct binary
 - Bearer token auth (static API token from bexio settings)
 - API spec files in `docs/bexio-api-*.json` for reference during implementation
 - Struct types double as MCP schemas and HTTP request/response bodies
+- If protocol complexity grows beyond current needs, can adopt go-sdk/mcp later (see ADR 0002)
