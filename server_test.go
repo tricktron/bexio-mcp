@@ -20,84 +20,67 @@ import (
 )
 
 func TestCreateTimesheetAcceptance(t *testing.T) {
-	tests := []struct {
-		name string
-	}{
-		{name: "creates timesheet via MCP tool"},
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	t.Cleanup(cancel)
 
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-			t.Cleanup(cancel)
+	fakeAPI := startFakeBexioAPI(t)
+	mcp := startMCPServer(ctx, t, map[string]string{
+		"BEXIO_API_TOKEN":    "test-token",
+		"BEXIO_API_BASE_URL": fakeAPI.URL,
+	})
 
-			// Slice: Project Setup & Create Timesheet
-			// Given a running MCP server with a valid bexio API token, when create_timesheet is called with required fields, then a timesheet is created in bexio and returned by the tool.
+	mcp.request(ctx, jsonRPCRequest{
+		JSONRPC: "2.0",
+		ID:      intPtr(1),
+		Method:  "initialize",
+		Params: initializeParams{
+			ProtocolVersion: "2024-11-05",
+			Capabilities:    map[string]any{},
+			ClientInfo: clientInfo{
+				Name:    "acceptance-test",
+				Version: "0.1.0",
+			},
+		},
+	})
+	mcp.notify(jsonRPCRequest{JSONRPC: "2.0", Method: "notifications/initialized"})
 
-			// Given
-			fakeAPI := startFakeBexioAPI(t)
-			mcp := startMCPServer(t, ctx, map[string]string{
-				"BEXIO_API_TOKEN":    "test-token",
-				"BEXIO_API_BASE_URL": fakeAPI.URL,
-			})
-
-			mcp.request(ctx, jsonRPCRequest{
-				JSONRPC: "2.0",
-				ID:      intPtr(1),
-				Method:  "initialize",
-				Params: initializeParams{
-					ProtocolVersion: "2024-11-05",
-					Capabilities:    map[string]any{},
-					ClientInfo: clientInfo{
-						Name:    "acceptance-test",
-						Version: "0.1.0",
-					},
+	response := mcp.request(ctx, jsonRPCRequest{
+		JSONRPC: "2.0",
+		ID:      intPtr(2),
+		Method:  "tools/call",
+		Params: toolCallParams{
+			Name: "create_timesheet",
+			Arguments: bexioCreateTimesheetRequest{
+				UserID:          42,
+				AllowableBill:   true,
+				ClientServiceID: 99,
+				ContactID:       intPtr(11),
+				PrProjectID:     intPtr(12),
+				Text:            "Build acceptance test",
+				Tracking: trackingRange{
+					Type:  "range",
+					Date:  "2026-02-08",
+					Start: "09:00",
+					End:   "10:30",
 				},
-			})
-			mcp.notify(jsonRPCRequest{JSONRPC: "2.0", Method: "notifications/initialized"})
+			},
+		},
+	})
 
-			// When
-			response := mcp.request(ctx, jsonRPCRequest{
-				JSONRPC: "2.0",
-				ID:      intPtr(2),
-				Method:  "tools/call",
-				Params: toolCallParams{
-					Name: "create_timesheet",
-					Arguments: bexioCreateTimesheetRequest{
-						UserID:          42,
-						AllowableBill:   true,
-						ClientServiceID: 99,
-						ContactID:       intPtr(11),
-						PrProjectID:     intPtr(12),
-						Text:            "Build acceptance test",
-						Tracking: trackingRange{
-							Type:  "range",
-							Date:  "2026-02-08",
-							Start: "09:00",
-							End:   "10:30",
-						},
-					},
-				},
-			})
+	received := fakeAPI.Received()
+	assert.Equal(t, http.MethodPost, received.Method)
+	assert.Equal(t, "/2.0/timesheet", received.Path)
+	assert.Equal(t, "Bearer test-token", received.Authorization)
+	assert.Equal(t, 99, received.Body.ClientServiceID)
+	assert.Equal(t, "Build acceptance test", received.Body.Text)
+	assert.Equal(t, "range", received.Body.Tracking.Type)
+	assert.Equal(t, "09:00", received.Body.Tracking.Start)
+	assert.Equal(t, "10:30", received.Body.Tracking.End)
 
-			// Then
-			received := fakeAPI.Received()
-			assert.Equal(t, http.MethodPost, received.Method)
-			assert.Equal(t, "/2.0/timesheet", received.Path)
-			assert.Equal(t, "Bearer test-token", received.Authorization)
-			assert.Equal(t, 99, received.Body.ClientServiceID)
-			assert.Equal(t, "Build acceptance test", received.Body.Text)
-			assert.Equal(t, "range", received.Body.Tracking.Type)
-			assert.Equal(t, "09:00", received.Body.Tracking.Start)
-			assert.Equal(t, "10:30", received.Body.Tracking.End)
-
-			var toolResult toolCallResult
-			err := json.Unmarshal(response.Result, &toolResult)
-			assert.NoError(t, err)
-			assert.Equal(t, 777, toolResult.StructuredContent.ID)
-		})
-	}
+	var toolResult toolCallResult
+	err := json.Unmarshal(response.Result, &toolResult)
+	assert.NoError(t, err)
+	assert.Equal(t, 777, toolResult.StructuredContent.ID)
 }
 
 type clientInfo struct {
@@ -212,7 +195,7 @@ type mcpServer struct {
 	cmd    *exec.Cmd
 }
 
-func startMCPServer(t *testing.T, ctx context.Context, env map[string]string) *mcpServer {
+func startMCPServer(ctx context.Context, t *testing.T, env map[string]string) *mcpServer {
 	t.Helper()
 
 	cmd := exec.CommandContext(ctx, "go", "run", ".")
@@ -232,7 +215,8 @@ func startMCPServer(t *testing.T, ctx context.Context, env map[string]string) *m
 	stderr := &bytes.Buffer{}
 	cmd.Stderr = stderr
 
-	if err := cmd.Start(); err != nil {
+	err = cmd.Start()
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -275,10 +259,12 @@ func writeRPC(t *testing.T, w io.Writer, msg jsonRPCRequest) {
 		t.Fatal(err)
 	}
 	header := "Content-Length: " + strconv.Itoa(len(payload)) + "\r\n\r\n"
-	if _, err := io.WriteString(w, header); err != nil {
+	_, err = io.WriteString(w, header)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := w.Write(payload); err != nil {
+	_, err = w.Write(payload)
+	if err != nil {
 		t.Fatal(err)
 	}
 }

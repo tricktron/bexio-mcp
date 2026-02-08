@@ -42,8 +42,9 @@ func (c BexioClient) CreateTimesheet(ctx context.Context, req bexioCreateTimeshe
 	defer httpResp.Body.Close()
 
 	var created bexioTimesheet
-	if err := json.NewDecoder(httpResp.Body).Decode(&created); err != nil {
-		return bexioTimesheet{}, fmt.Errorf("decode response: %w", err)
+	decodeErr := json.NewDecoder(httpResp.Body).Decode(&created)
+	if decodeErr != nil {
+		return bexioTimesheet{}, fmt.Errorf("decode response: %w", decodeErr)
 	}
 
 	return created, nil

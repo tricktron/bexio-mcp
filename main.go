@@ -27,10 +27,10 @@ type rpcRequest struct {
 }
 
 type rpcResponse struct {
-	JSONRPC string      `json:"jsonrpc"`
-	ID      *int        `json:"id,omitempty"`
-	Result  interface{} `json:"result,omitempty"`
-	Error   *rpcError   `json:"error,omitempty"`
+	JSONRPC string    `json:"jsonrpc"`
+	ID      *int      `json:"id,omitempty"`
+	Result  any       `json:"result,omitempty"`
+	Error   *rpcError `json:"error,omitempty"`
 }
 
 type rpcError struct {
@@ -77,7 +77,8 @@ func run(stdin io.Reader, stdout io.Writer, cfg config) error {
 		}
 
 		var req rpcRequest
-		if err := json.Unmarshal(payload, &req); err != nil {
+		err = json.Unmarshal(payload, &req)
+		if err != nil {
 			return fmt.Errorf("decode request: %w", err)
 		}
 
@@ -86,11 +87,14 @@ func run(stdin io.Reader, stdout io.Writer, cfg config) error {
 			continue
 		}
 
-		if err := writeResponse(stdout, resp); err != nil {
+		err = writeResponse(stdout, resp)
+		if err != nil {
 			return fmt.Errorf("write response: %w", err)
 		}
 	}
 }
+
+const headerSplitParts = 2
 
 func handleRequest(ctx context.Context, req rpcRequest, client timesheetCreator) (rpcResponse, bool) {
 	if req.ID == nil {
@@ -147,8 +151,8 @@ func readPayload(reader *bufio.Reader) ([]byte, error) {
 			break
 		}
 
-		parts := strings.SplitN(line, ":", 2)
-		if len(parts) != 2 {
+		parts := strings.SplitN(line, ":", headerSplitParts)
+		if len(parts) != headerSplitParts {
 			continue
 		}
 		if !strings.EqualFold(strings.TrimSpace(parts[0]), "Content-Length") {
@@ -180,14 +184,17 @@ func writeResponse(writer io.Writer, resp rpcResponse) error {
 	}
 
 	var header bytes.Buffer
-	if _, err := fmt.Fprintf(&header, "Content-Length: %d\r\n\r\n", len(payload)); err != nil {
+	_, err = fmt.Fprintf(&header, "Content-Length: %d\r\n\r\n", len(payload))
+	if err != nil {
 		return fmt.Errorf("build header: %w", err)
 	}
 
-	if _, err := writer.Write(header.Bytes()); err != nil {
+	_, err = writer.Write(header.Bytes())
+	if err != nil {
 		return fmt.Errorf("write header: %w", err)
 	}
-	if _, err := writer.Write(payload); err != nil {
+	_, err = writer.Write(payload)
+	if err != nil {
 		return fmt.Errorf("write payload: %w", err)
 	}
 	return nil

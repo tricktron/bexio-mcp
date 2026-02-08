@@ -34,3 +34,11 @@ Then the timesheet is created in Bexio (validates both MCP protocol and Bexio AP
 
 ## Uses
 - All slice 01 code
+
+## Implemented
+- Updated `.golangci.yml` local-prefixes to `github.com/tricktron/bexio-mcp`.
+- Updated `.golangci.yml` exclusions `warn-unused` to `false` to remove noisy unused-rule warnings.
+- Fixed linter findings in existing code (`main.go`, `bexio_client.go`, `bexio_client_test.go`, `server_test.go`) without changing external behavior.
+- Ran `golangci-lint run` successfully (0 issues).
+- Built binary with `go build -o bexio-mcp .`.
+- Manual opencode smoke test against real Bexio remains pending because it requires local MCP client configuration and a real API token/account.
