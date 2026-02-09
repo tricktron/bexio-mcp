@@ -5,14 +5,17 @@ As a developer, I want to list and search my timesheet entries so that I can rev
 
 ## Outer Boundary
 - Entry: MCP tools `list_timesheets`, `search_timesheets`
-- Test file: `mcp_test.go`
+- Test file: `server_test.go`
 - Framework: `go test`
 
 ## Shell Boundaries
-- HTTP: BexioClient — calls `GET /2.0/timesheet` and `POST /2.0/timesheet/search`
+- MCP shell: `newMCPServer` in `main.go` — tool registration and transport wiring
+- HTTP shell: `BexioClient` in `bexio_client.go` — calls `GET /2.0/timesheet` and `POST /2.0/timesheet/search`
 
 ## Functional Core
-Discovered via TDD.
+- `bexioSearchField`: search filter contract shared by MCP and HTTP layers
+- `bexioSearchTimesheetsRequest`: MCP request envelope for search filters
+- `bexioTimesheet`: timesheet response model used across tool and HTTP boundaries
 
 ## Acceptance Criterion
 Given a running MCP server  
@@ -28,3 +31,9 @@ Then the tool returns matching timesheet entries
 
 ## Uses
 - BexioClient from slice 01
+
+## Implemented
+- Added MCP tool handlers for `list_timesheets` and `search_timesheets`
+- Added `BexioClient.ListTimesheets` and `BexioClient.SearchTimesheets`
+- Added acceptance coverage for list and search tool flows
+- Added HTTP client unit coverage for list and search API calls

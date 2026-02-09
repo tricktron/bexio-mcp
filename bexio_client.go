@@ -26,27 +26,15 @@ func NewBexioClient(baseURL, token string, httpClient *http.Client) BexioClient 
 }
 
 func (c BexioClient) CreateTimesheet(ctx context.Context, req bexioCreateTimesheetRequest) (bexioTimesheet, error) {
-	body, err := json.Marshal(req)
+	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, timesheetEndpoint, req)
 	if err != nil {
-		return bexioTimesheet{}, fmt.Errorf("marshal request: %w", err)
+		return bexioTimesheet{}, err
 	}
-
-	httpReq, err := c.newRequest(ctx, http.MethodPost, timesheetEndpoint, bytes.NewReader(body))
-	if err != nil {
-		return bexioTimesheet{}, fmt.Errorf("build request: %w", err)
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	httpResp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		return bexioTimesheet{}, fmt.Errorf("send request: %w", err)
-	}
-	defer httpResp.Body.Close()
 
 	var created bexioTimesheet
-	decodeErr := decodeJSON(httpResp.Body, &created)
-	if decodeErr != nil {
-		return bexioTimesheet{}, fmt.Errorf("decode response: %w", decodeErr)
+	err = c.doAndDecode(httpReq, &created)
+	if err != nil {
+		return bexioTimesheet{}, err
 	}
 
 	return created, nil
@@ -58,46 +46,58 @@ func (c BexioClient) ListTimesheets(ctx context.Context) ([]bexioTimesheet, erro
 		return nil, fmt.Errorf("build request: %w", err)
 	}
 
-	httpResp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("send request: %w", err)
-	}
-	defer httpResp.Body.Close()
-
 	var timesheets []bexioTimesheet
-	decodeErr := decodeJSON(httpResp.Body, &timesheets)
-	if decodeErr != nil {
-		return nil, fmt.Errorf("decode response: %w", decodeErr)
+	err = c.doAndDecode(httpReq, &timesheets)
+	if err != nil {
+		return nil, err
 	}
 
 	return timesheets, nil
 }
 
 func (c BexioClient) SearchTimesheets(ctx context.Context, fields []bexioSearchField) ([]bexioTimesheet, error) {
-	body, err := json.Marshal(fields)
+	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, timesheetEndpoint+"/search", fields)
+	if err != nil {
+		return nil, err
+	}
+
+	var timesheets []bexioTimesheet
+	err = c.doAndDecode(httpReq, &timesheets)
+	if err != nil {
+		return nil, err
+	}
+
+	return timesheets, nil
+}
+
+func (c BexioClient) newJSONRequest(ctx context.Context, method, path string, payload any) (*http.Request, error) {
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	httpReq, err := c.newRequest(ctx, http.MethodPost, timesheetEndpoint+"/search", bytes.NewReader(body))
+	httpReq, err := c.newRequest(ctx, method, path, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
+	return httpReq, nil
+}
+
+func (c BexioClient) doAndDecode(httpReq *http.Request, target any) error {
 	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("send request: %w", err)
+		return fmt.Errorf("send request: %w", err)
 	}
 	defer httpResp.Body.Close()
 
-	var timesheets []bexioTimesheet
-	decodeErr := decodeJSON(httpResp.Body, &timesheets)
-	if decodeErr != nil {
-		return nil, fmt.Errorf("decode response: %w", decodeErr)
+	err = decodeJSON(httpResp.Body, target)
+	if err != nil {
+		return fmt.Errorf("decode response: %w", err)
 	}
 
-	return timesheets, nil
+	return nil
 }
 
 func (c BexioClient) newRequest(ctx context.Context, method, path string, body io.Reader) (*http.Request, error) {

@@ -46,16 +46,12 @@ func newMCPServer(bexio BexioClient) *mcp.Server {
 			return nil, nil, fmt.Errorf("list timesheets: %w", err)
 		}
 
-		jsonBody, err := json.Marshal(entries)
+		result, err := marshalToolResult(entries)
 		if err != nil {
-			return nil, nil, fmt.Errorf("marshal tool result: %w", err)
+			return nil, nil, err
 		}
 
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: string(jsonBody)},
-			},
-		}, nil, nil
+		return result, nil, nil
 	})
 	mcp.AddTool[bexioSearchTimesheetsRequest, any](server, &mcp.Tool{
 		Name:        "search_timesheets",
@@ -66,23 +62,23 @@ func newMCPServer(bexio BexioClient) *mcp.Server {
 			return nil, nil, fmt.Errorf("search timesheets: %w", err)
 		}
 
-		jsonBody, err := json.Marshal(entries)
+		result, err := marshalToolResult(entries)
 		if err != nil {
-			return nil, nil, fmt.Errorf("marshal tool result: %w", err)
+			return nil, nil, err
 		}
 
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: string(jsonBody)},
-			},
-		}, nil, nil
+		return result, nil, nil
 	})
 
 	return server
 }
 
 func marshalTimesheetResult(created bexioTimesheet) (*mcp.CallToolResult, error) {
-	jsonBody, err := json.Marshal(created)
+	return marshalToolResult(created)
+}
+
+func marshalToolResult(payload any) (*mcp.CallToolResult, error) {
+	jsonBody, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("marshal tool result: %w", err)
 	}

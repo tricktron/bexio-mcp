@@ -17,25 +17,9 @@ import (
 func TestCreateTimesheetAcceptance(t *testing.T) {
 	// Slice: Adopt MCP SDK
 	// Given a configured MCP server, when create_timesheet is called over MCP, then the timesheet is created in Bexio without timeout.
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	t.Cleanup(cancel)
+	env := newAcceptanceEnv(t)
 
-	fakeAPI := startFakeBexioAPI(t)
-	bexio := NewBexioClient(fakeAPI.URL, "test-token", http.DefaultClient)
-	server := newMCPServer(bexio)
-
-	serverTransport, clientTransport := mcp.NewInMemoryTransports()
-
-	serverSession, err := server.Connect(ctx, serverTransport, nil)
-	assert.NoError(t, err)
-	t.Cleanup(func() { serverSession.Close() })
-
-	testClient := mcp.NewClient(&mcp.Implementation{Name: "acceptance-test", Version: "0.1.0"}, nil)
-	session, err := testClient.Connect(ctx, clientTransport, nil)
-	assert.NoError(t, err)
-	t.Cleanup(func() { session.Close() })
-
-	result, err := session.CallTool(ctx, &mcp.CallToolParams{
+	result, err := env.callTool(&mcp.CallToolParams{
 		Name: "create_timesheet",
 		Arguments: map[string]any{
 			"user_id":           42,
@@ -72,7 +56,7 @@ func TestCreateTimesheetAcceptance(t *testing.T) {
 				End:   "10:30",
 			},
 		},
-	}, fakeAPI.Received())
+	}, env.fakeAPI.Received())
 
 	assert.False(t, result.IsError)
 	assert.True(t, len(result.Content) > 0, "result should have content")
@@ -81,25 +65,9 @@ func TestCreateTimesheetAcceptance(t *testing.T) {
 func TestListTimesheetsAcceptance(t *testing.T) {
 	// Slice: List & Search Timesheets
 	// Given a running MCP server, when the client calls list_timesheets, then the tool returns a list of recent timesheet entries.
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	t.Cleanup(cancel)
+	env := newAcceptanceEnv(t)
 
-	fakeAPI := startFakeBexioAPI(t)
-	bexio := NewBexioClient(fakeAPI.URL, "test-token", http.DefaultClient)
-	server := newMCPServer(bexio)
-
-	serverTransport, clientTransport := mcp.NewInMemoryTransports()
-
-	serverSession, err := server.Connect(ctx, serverTransport, nil)
-	assert.NoError(t, err)
-	t.Cleanup(func() { serverSession.Close() })
-
-	testClient := mcp.NewClient(&mcp.Implementation{Name: "acceptance-test", Version: "0.1.0"}, nil)
-	session, err := testClient.Connect(ctx, clientTransport, nil)
-	assert.NoError(t, err)
-	t.Cleanup(func() { session.Close() })
-
-	result, err := session.CallTool(ctx, &mcp.CallToolParams{
+	result, err := env.callTool(&mcp.CallToolParams{
 		Name: "list_timesheets",
 	})
 	assert.NoError(t, err)
@@ -108,7 +76,7 @@ func TestListTimesheetsAcceptance(t *testing.T) {
 		Method:        http.MethodGet,
 		Path:          "/2.0/timesheet",
 		Authorization: "Bearer test-token",
-	}, fakeAPI.Received())
+	}, env.fakeAPI.Received())
 
 	contentJSON, err := json.Marshal(result.Content)
 	assert.NoError(t, err)
@@ -123,29 +91,13 @@ func TestListTimesheetsAcceptance(t *testing.T) {
 func TestSearchTimesheetsAcceptance(t *testing.T) {
 	// Slice: List & Search Timesheets
 	// Given a running MCP server, when the client calls search_timesheets with a user_id filter, then the tool returns matching timesheet entries.
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	t.Cleanup(cancel)
-
-	fakeAPI := startFakeBexioAPI(t)
-	bexio := NewBexioClient(fakeAPI.URL, "test-token", http.DefaultClient)
-	server := newMCPServer(bexio)
-
-	serverTransport, clientTransport := mcp.NewInMemoryTransports()
-
-	serverSession, err := server.Connect(ctx, serverTransport, nil)
-	assert.NoError(t, err)
-	t.Cleanup(func() { serverSession.Close() })
-
-	testClient := mcp.NewClient(&mcp.Implementation{Name: "acceptance-test", Version: "0.1.0"}, nil)
-	session, err := testClient.Connect(ctx, clientTransport, nil)
-	assert.NoError(t, err)
-	t.Cleanup(func() { session.Close() })
+	env := newAcceptanceEnv(t)
 
 	searchFields := []bexioSearchField{
 		{Field: "user_id", Value: "42", Criteria: "="},
 	}
 
-	result, err := session.CallTool(ctx, &mcp.CallToolParams{
+	result, err := env.callTool(&mcp.CallToolParams{
 		Name: "search_timesheets",
 		Arguments: map[string]any{
 			"search_fields": []map[string]any{
@@ -160,7 +112,7 @@ func TestSearchTimesheetsAcceptance(t *testing.T) {
 		Path:          "/2.0/timesheet/search",
 		Authorization: "Bearer test-token",
 		SearchBody:    searchFields,
-	}, fakeAPI.Received())
+	}, env.fakeAPI.Received())
 
 	contentJSON, err := json.Marshal(result.Content)
 	assert.NoError(t, err)
@@ -178,6 +130,42 @@ type fakeBexioAPI struct {
 
 	mu       sync.Mutex
 	captured fakeBexioCapturedRequest
+}
+
+type acceptanceEnv struct {
+	ctx      context.Context
+	fakeAPI  *fakeBexioAPI
+	callTool func(params *mcp.CallToolParams) (*mcp.CallToolResult, error)
+}
+
+func newAcceptanceEnv(t *testing.T) acceptanceEnv {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	t.Cleanup(cancel)
+
+	fakeAPI := startFakeBexioAPI(t)
+	bexio := NewBexioClient(fakeAPI.URL, "test-token", http.DefaultClient)
+	server := newMCPServer(bexio)
+
+	serverTransport, clientTransport := mcp.NewInMemoryTransports()
+
+	serverSession, err := server.Connect(ctx, serverTransport, nil)
+	assert.NoError(t, err)
+	t.Cleanup(func() { serverSession.Close() })
+
+	testClient := mcp.NewClient(&mcp.Implementation{Name: "acceptance-test", Version: "0.1.0"}, nil)
+	clientSession, err := testClient.Connect(ctx, clientTransport, nil)
+	assert.NoError(t, err)
+	t.Cleanup(func() { clientSession.Close() })
+
+	return acceptanceEnv{
+		ctx:     ctx,
+		fakeAPI: fakeAPI,
+		callTool: func(params *mcp.CallToolParams) (*mcp.CallToolResult, error) {
+			return clientSession.CallTool(ctx, params)
+		},
+	}
 }
 
 func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {

@@ -58,3 +58,37 @@ None — shell wiring only, covered by acceptance test.
 
 ### Recall
 (pending)
+
+---
+
+## 2026-02-10: List & Search Timesheets
+
+### Acceptance Test
+- Entry: MCP tools `list_timesheets` and `search_timesheets`
+- Verified: Tool calls map to `GET /2.0/timesheet` and `POST /2.0/timesheet/search` and return matching timesheet entries
+
+### Architecture
+```mermaid
+graph TD
+    MCPServer[newMCPServer] --> TimesheetCore[Timesheet Models]
+    BexioClient --> TimesheetCore
+```
+
+### Functional Core
+- bexioSearchField: Search filter contract shared by MCP and HTTP layers
+- bexioSearchTimesheetsRequest: MCP request envelope for search filters
+- bexioTimesheet: Response model shared across boundaries
+
+### Unit Tests (3)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| BexioClient | 3 | GET timesheets, POST search filters, auth/header and JSON decoding behavior |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
