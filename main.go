@@ -27,20 +27,29 @@ func newMCPServer(bexio BexioClient) *mcp.Server {
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, input bexioCreateTimesheetRequest) (*mcp.CallToolResult, any, error) {
 		created, err := bexio.CreateTimesheet(ctx, input)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("create timesheet: %w", err)
 		}
 
-		jsonBody, err := json.Marshal(created)
+		result, err := marshalTimesheetResult(created)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: string(jsonBody)},
-			},
-		}, nil, nil
+		return result, nil, nil
 	})
 
 	return server
+}
+
+func marshalTimesheetResult(created bexioTimesheet) (*mcp.CallToolResult, error) {
+	jsonBody, err := json.Marshal(created)
+	if err != nil {
+		return nil, fmt.Errorf("marshal tool result: %w", err)
+	}
+
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(jsonBody)},
+		},
+	}, nil
 }

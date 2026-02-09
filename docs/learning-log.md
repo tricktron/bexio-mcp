@@ -29,3 +29,32 @@ None
 
 ### Recall Answers
 N/A
+
+---
+
+## Slice: 01c — Adopt MCP SDK
+
+### Date
+2026-02-09
+
+### Acceptance Test
+`TestCreateTimesheetAcceptance` — SDK client connects in-process, calls `create_timesheet`, verifies Bexio API request and tool result content.
+
+### Architecture
+```mermaid
+graph LR
+    Client[MCP Client] -->|MCP protocol / stdio| Server[bexio-mcp<br>go-sdk/mcp]
+    Server -->|REST API| Bexio[api.bexio.com]
+```
+
+### Core Classes Discovered
+None — pure shell rewrite.
+
+### Unit Tests
+None — shell wiring only, covered by acceptance test.
+
+### Discoveries
+- `assumption-invalid`: Hand-rolled JSON-RPC passed unit tests but failed against real MCP client (opencode 30s timeout). Root cause unknown. Adopted `go-sdk/mcp` which works immediately.
+
+### Recall
+(pending)
