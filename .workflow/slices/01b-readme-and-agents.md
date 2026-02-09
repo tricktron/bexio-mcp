@@ -45,3 +45,12 @@ Then it understands the conventions, patterns, and constraints
 
 ## Uses
 - All existing project knowledge from slice 01 + ADRs
+
+## Implemented
+- Added `README.md` at repo root with project purpose, prerequisites, build/run steps, required environment variables, MCP client config examples for opencode and Claude Desktop, current tool list (`create_timesheet`), and development commands for tests/lint.
+- Added root `AGENTS.md` with architecture and workflow guidance aligned to current ADRs and codebase conventions (SDK-based MCP with hand-rolled approach retained as historical/superseded context).
+- Validation performed:
+  - Checked documentation content against current implementation in `main.go`, `bexio_client.go`, `timesheet.go`, `server_test.go`, and ADR files.
+  - Verified lint requirement in docs matches repository policy (`golangci-lint run`).
+- Deviation from original slice notes:
+  - `AGENTS.md` reflects the current architecture (`go-sdk/mcp`) rather than the previously attempted hand-rolled JSON-RPC approach, because ADR 0002 marks hand-rolled as superseded.
