@@ -10,18 +10,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-type config struct {
-	apiToken   string
-	apiBaseURL string
-}
-
 func main() {
-	cfg := config{
-		apiToken:   os.Getenv("BEXIO_API_TOKEN"),
-		apiBaseURL: os.Getenv("BEXIO_API_BASE_URL"),
-	}
-
-	bexio := NewBexioClient(cfg.apiBaseURL, cfg.apiToken, http.DefaultClient)
+	bexio := NewBexioClient(os.Getenv("BEXIO_API_BASE_URL"), os.Getenv("BEXIO_API_TOKEN"), http.DefaultClient)
 	server := newMCPServer(bexio)
 	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "server error: %v\n", err)
@@ -31,9 +21,10 @@ func main() {
 
 func newMCPServer(bexio BexioClient) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "bexio-mcp", Version: "0.0.0"}, nil)
-	mcp.AddTool[bexioCreateTimesheetRequest, any](server, &mcp.Tool{Name: "create_timesheet"}, func(ctx context.Context, req *mcp.CallToolRequest, input bexioCreateTimesheetRequest) (*mcp.CallToolResult, any, error) {
-		_ = req
-
+	mcp.AddTool[bexioCreateTimesheetRequest, any](server, &mcp.Tool{
+		Name:        "create_timesheet",
+		Description: "Create a timesheet entry in Bexio",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, input bexioCreateTimesheetRequest) (*mcp.CallToolResult, any, error) {
 		created, err := bexio.CreateTimesheet(ctx, input)
 		if err != nil {
 			return nil, nil, err
