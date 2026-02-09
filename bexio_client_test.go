@@ -55,6 +55,66 @@ func TestBexioClientCreateTimesheet(t *testing.T) {
 	assert.Equal(t, created, result)
 }
 
+func TestBexioClientListTimesheets(t *testing.T) {
+	t.Parallel()
+
+	expected := []bexioTimesheet{
+		{
+			ID:              801,
+			UserID:          1,
+			AllowableBill:   true,
+			ClientServiceID: 11,
+			Text:            "list-entry-1",
+			Tracking: trackingRange{
+				Type:  "range",
+				Date:  "2026-02-01",
+				Start: "09:00",
+				End:   "10:00",
+			},
+		},
+		{
+			ID:              802,
+			UserID:          2,
+			AllowableBill:   false,
+			ClientServiceID: 12,
+			Text:            "list-entry-2",
+			Tracking: trackingRange{
+				Type:  "range",
+				Date:  "2026-02-02",
+				Start: "10:00",
+				End:   "11:00",
+			},
+		},
+	}
+
+	received := fakeBexioCapturedRequest{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		received = fakeBexioCapturedRequest{
+			Method:        r.Method,
+			Path:          r.URL.Path,
+			Authorization: r.Header.Get("Authorization"),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(expected)
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
+
+	result, err := client.ListTimesheets(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/2.0/timesheet",
+		Authorization: "Bearer test-token",
+	}, received)
+	assert.Equal(t, expected, result)
+}
+
 func newTimesheetServer(t *testing.T, received *fakeBexioCapturedRequest, response bexioTimesheet) *httptest.Server {
 	t.Helper()
 

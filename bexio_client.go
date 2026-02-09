@@ -49,3 +49,25 @@ func (c BexioClient) CreateTimesheet(ctx context.Context, req bexioCreateTimeshe
 
 	return created, nil
 }
+
+func (c BexioClient) ListTimesheets(ctx context.Context) ([]bexioTimesheet, error) {
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/2.0/timesheet", nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+c.token)
+
+	httpResp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("send request: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	var timesheets []bexioTimesheet
+	decodeErr := json.NewDecoder(httpResp.Body).Decode(&timesheets)
+	if decodeErr != nil {
+		return nil, fmt.Errorf("decode response: %w", decodeErr)
+	}
+
+	return timesheets, nil
+}
