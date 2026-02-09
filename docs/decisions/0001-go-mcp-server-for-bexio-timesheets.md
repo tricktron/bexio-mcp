@@ -9,16 +9,15 @@ We need to automate bexio timesheet logging via natural language. The developer 
 An MCP server exposes bexio timesheet operations as tools, enabling any MCP client (Claude Desktop, VS Code, etc.) to interactively log time via natural language.
 
 ## Decision
-Build the MCP server in **Go** with a hand-rolled JSON-RPC 2.0 implementation over stdio.
+Build the MCP server in **Go** using `github.com/modelcontextprotocol/go-sdk/mcp` for protocol handling and stdio transport.
 
-> **Update (ADR 0002):** Originally planned to use `github.com/modelcontextprotocol/go-sdk/mcp`, but the protocol surface is small enough (initialize, tools/list, tools/call) that a hand-rolled implementation is simpler with zero dependencies. See ADR 0002 for rationale.
+> **Update (ADR 0002):** Tried hand-rolled JSON-RPC 2.0 first. It passed unit tests but failed against a real MCP client (opencode timeout). Reverted to SDK. See ADR 0002 for full history.
 
 ### Why Go over TypeScript
 - Single binary distribution — no runtime dependency, easy to deploy behind corporate proxy
 - `net/http` stdlib — no third-party HTTP library needed for bexio API calls
 - Struct types serve as both MCP tool schemas and HTTP request/response bodies
 - Fast compile + test cycle for iterative API integration work
-- MCP protocol surface is small enough for a hand-rolled implementation with zero external dependencies
 
 ### Why Go over Python
 - Corporate MITM proxy (BIT Proxy CA) generates certificates missing the Authority Key Identifier extension
@@ -50,9 +49,8 @@ graph LR
 ```
 
 ## Consequences
-- Go module with hand-rolled JSON-RPC 2.0 (zero external production dependencies)
+- Go module using `github.com/modelcontextprotocol/go-sdk/mcp` for MCP protocol
 - Single binary, distributed via `go install` or direct binary
 - Bearer token auth (static API token from bexio settings)
 - API spec files in `docs/bexio-api-*.json` for reference during implementation
 - Struct types double as MCP schemas and HTTP request/response bodies
-- If protocol complexity grows beyond current needs, can adopt go-sdk/mcp later (see ADR 0002)

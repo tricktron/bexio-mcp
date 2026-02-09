@@ -41,4 +41,7 @@ Then the timesheet is created in Bexio (validates both MCP protocol and Bexio AP
 - Fixed linter findings in existing code (`main.go`, `bexio_client.go`, `bexio_client_test.go`, `server_test.go`) without changing external behavior.
 - Ran `golangci-lint run` successfully (0 issues).
 - Built binary with `go build -o bexio-mcp .`.
-- Manual opencode smoke test against real Bexio remains pending because it requires local MCP client configuration and a real API token/account.
+- Manual opencode smoke test **completed**: server failed to connect (30s timeout). Discovery filed → assumption-invalid. Hand-rolled MCP abandoned in favor of SDK (see slice 01c).
+
+## Status
+Complete — this slice validated/invalidated the hand-rolled assumption. No further work needed here.

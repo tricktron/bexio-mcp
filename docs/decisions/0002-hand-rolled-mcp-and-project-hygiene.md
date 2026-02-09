@@ -1,7 +1,7 @@
 # 0002: Hand-Rolled MCP Protocol and Project Hygiene
 
 ## Status
-Accepted
+Superseded — "keep hand-rolled" rejected after smoke test failure. Adopting `go-sdk/mcp` (see ADR 0001). Project hygiene decisions remain valid.
 
 ## Context
 After completing slice 01, several gaps were identified:
@@ -14,8 +14,8 @@ After completing slice 01, several gaps were identified:
 
 ## Decision
 
-### Keep hand-rolled MCP, update ADR 0001
-The protocol surface is small (initialize, tools/list, tools/call). The hand-rolled implementation is tested, zero-dependency, and sufficient. Update ADR 0001 to reflect this reality. If the approach becomes painful in later slices, we can adopt the SDK then with better knowledge of actual needs.
+### ~~Keep hand-rolled MCP, update ADR 0001~~ → REJECTED
+The protocol surface appeared small (initialize, tools/list, tools/call), but the hand-rolled implementation failed against a real MCP client (opencode timeout after 30s). Root cause: unknown protocol compliance gap. Adopting `github.com/modelcontextprotocol/go-sdk/mcp` instead. See slice 01c.
 
 ### Grow interfaces per-slice, not preemptively
 Add small consumer-side interfaces (Go idiomatic) as each slice needs them. Don't create a mega-interface upfront.
@@ -34,7 +34,7 @@ Replace placeholder `github.com/my/project` with `github.com/tricktron/bexio-mcp
 
 | Alternative | Why rejected |
 | --- | --- |
-| Adopt go-mcp SDK now | Working code with no user-facing benefit from rewrite; cheapest switch point is later if needed |
+| ~~Adopt go-mcp SDK now~~ | ~~Working code with no user-facing benefit from rewrite~~ → Now adopted: hand-rolled failed smoke test |
 | Preemptive interfaces for all Bexio operations | Over-engineering; Go idiom favors small interfaces added when needed |
 | Contract test against real Bexio API | Needs create+delete (slice 04 not done); manual smoke test validates both boundaries in one shot |
 | Skip smoke test, trust fakes | Both integration boundaries are untested; too risky before building 4 more slices on this foundation |
@@ -52,8 +52,8 @@ graph TD
 ```
 
 ## Consequences
-- ADR 0001 updated to say "hand-rolled JSON-RPC" instead of "go-sdk/mcp"
-- Manual smoke test gates further slice work — if protocol is broken, fix it first
+- ADR 0001 updated to say "go-sdk/mcp" (reverted from hand-rolled after smoke test failure)
+- Manual smoke test gated further slice work — protocol was broken, now fixing with SDK (slice 01c)
 - golangci-lint may surface issues in existing code that need fixing
 - README and AGENTS.md added as project documentation
 - Interfaces grow organically per slice
