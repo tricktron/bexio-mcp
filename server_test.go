@@ -120,6 +120,58 @@ func TestListTimesheetsAcceptance(t *testing.T) {
 	)
 }
 
+func TestSearchTimesheetsAcceptance(t *testing.T) {
+	// Slice: List & Search Timesheets
+	// Given a running MCP server, when the client calls search_timesheets with a user_id filter, then the tool returns matching timesheet entries.
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	t.Cleanup(cancel)
+
+	fakeAPI := startFakeBexioAPI(t)
+	bexio := NewBexioClient(fakeAPI.URL, "test-token", http.DefaultClient)
+	server := newMCPServer(bexio)
+
+	serverTransport, clientTransport := mcp.NewInMemoryTransports()
+
+	serverSession, err := server.Connect(ctx, serverTransport, nil)
+	assert.NoError(t, err)
+	t.Cleanup(func() { serverSession.Close() })
+
+	testClient := mcp.NewClient(&mcp.Implementation{Name: "acceptance-test", Version: "0.1.0"}, nil)
+	session, err := testClient.Connect(ctx, clientTransport, nil)
+	assert.NoError(t, err)
+	t.Cleanup(func() { session.Close() })
+
+	searchFields := []bexioSearchField{
+		{Field: "user_id", Value: "42", Criteria: "="},
+	}
+
+	result, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: "search_timesheets",
+		Arguments: map[string]any{
+			"search_fields": []map[string]any{
+				{"field": "user_id", "value": "42", "criteria": "="},
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodPost,
+		Path:          "/2.0/timesheet/search",
+		Authorization: "Bearer test-token",
+		SearchBody:    searchFields,
+	}, fakeAPI.Received())
+
+	contentJSON, err := json.Marshal(result.Content)
+	assert.NoError(t, err)
+	assert.False(t, result.IsError)
+	assert.True(
+		t,
+		strings.Contains(string(contentJSON), "search-match-1"),
+		"result should contain matching timesheet entries",
+	)
+}
+
 type fakeBexioAPI struct {
 	URL    string
 	server *httptest.Server
@@ -209,6 +261,41 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 			if err := json.NewEncoder(w).Encode(entries); err != nil {
 				t.Fatal(err)
 			}
+		case r.Method == http.MethodPost && r.URL.Path == "/2.0/timesheet/search":
+			var reqBody []bexioSearchField
+			if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+				t.Fatal(err)
+			}
+
+			api.mu.Lock()
+			api.captured = fakeBexioCapturedRequest{
+				Method:        r.Method,
+				Path:          r.URL.Path,
+				Authorization: r.Header.Get("Authorization"),
+				SearchBody:    reqBody,
+			}
+			api.mu.Unlock()
+
+			entries := []bexioTimesheet{
+				{
+					ID:              901,
+					UserID:          42,
+					AllowableBill:   true,
+					ClientServiceID: 77,
+					Text:            "search-match-1",
+					Tracking: trackingRange{
+						Type:  "range",
+						Date:  "2026-02-10",
+						Start: "08:00",
+						End:   "09:00",
+					},
+				},
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(entries); err != nil {
+				t.Fatal(err)
+			}
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -230,6 +317,7 @@ type fakeBexioCapturedRequest struct {
 	Path          string
 	Authorization string
 	Body          bexioCreateTimesheetRequest
+	SearchBody    []bexioSearchField
 }
 
 func intPtr(v int) *int {

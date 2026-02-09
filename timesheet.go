@@ -17,6 +17,16 @@ type bexioCreateTimesheetRequest struct {
 	PrProjectID     *int          `json:"pr_project_id,omitempty"`
 }
 
+type bexioSearchField struct {
+	Field    string `json:"field"`
+	Value    string `json:"value"`
+	Criteria string `json:"criteria,omitempty"`
+}
+
+type bexioSearchTimesheetsRequest struct {
+	SearchFields []bexioSearchField `json:"search_fields"`
+}
+
 type bexioTimesheet struct {
 	ID              int           `json:"id"`
 	UserID          int           `json:"user_id"`

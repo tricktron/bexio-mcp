@@ -57,6 +57,26 @@ func newMCPServer(bexio BexioClient) *mcp.Server {
 			},
 		}, nil, nil
 	})
+	mcp.AddTool[bexioSearchTimesheetsRequest, any](server, &mcp.Tool{
+		Name:        "search_timesheets",
+		Description: "Search timesheet entries in Bexio",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, input bexioSearchTimesheetsRequest) (*mcp.CallToolResult, any, error) {
+		entries, err := bexio.SearchTimesheets(ctx, input.SearchFields)
+		if err != nil {
+			return nil, nil, fmt.Errorf("search timesheets: %w", err)
+		}
+
+		jsonBody, err := json.Marshal(entries)
+		if err != nil {
+			return nil, nil, fmt.Errorf("marshal tool result: %w", err)
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: string(jsonBody)},
+			},
+		}, nil, nil
+	})
 
 	return server
 }
