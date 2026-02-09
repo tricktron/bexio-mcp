@@ -134,3 +134,14 @@ func (f *fakeBexioAPI) Received() fakeBexioCapturedRequest {
 	defer f.mu.Unlock()
 	return f.captured
 }
+
+type fakeBexioCapturedRequest struct {
+	Method        string
+	Path          string
+	Authorization string
+	Body          bexioCreateTimesheetRequest
+}
+
+func intPtr(v int) *int {
+	return &v
+}
