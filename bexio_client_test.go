@@ -46,10 +46,12 @@ func TestBexioClientCreateTimesheet(t *testing.T) {
 
 	result, err := client.CreateTimesheet(context.Background(), request)
 	assert.NoError(t, err)
-	assert.Equal(t, http.MethodPost, received.Method)
-	assert.Equal(t, "/2.0/timesheet", received.Path)
-	assert.Equal(t, "Bearer test-token", received.Authorization)
-	assert.Equal(t, request, received.Body)
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodPost,
+		Path:          "/2.0/timesheet",
+		Authorization: "Bearer test-token",
+		Body:          request,
+	}, received)
 	assert.Equal(t, created, result)
 }
 
