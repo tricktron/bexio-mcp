@@ -28,7 +28,9 @@ graph TD
 None
 
 ### Recall Answers
-N/A
+1. Added ListTimesheets and SearchTimesheets methods to BexioClient
+2. That list and search timesheet tools work end-to-end and return data via MCP
+3. Nothing — straightforward slice
 
 ---
 
