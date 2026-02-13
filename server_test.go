@@ -63,6 +63,50 @@ func TestCreateTimesheetAcceptance(t *testing.T) {
 	assert.True(t, len(result.Content) > 0, "result should have content")
 }
 
+func TestCreateTimesheetAutoResolveDefaultsAcceptance(t *testing.T) {
+	// Slice: Auto-resolve Timesheet Defaults
+	// Given a running MCP server, when create_timesheet is called without user_id and status_id, then user_id resolves from current user and status_id resolves to "Erledigt".
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "create_timesheet",
+		Arguments: map[string]any{
+			"allowable_bill":    true,
+			"client_service_id": 99,
+			"text":              "Build acceptance test with defaults",
+			"tracking": map[string]any{
+				"type":  "range",
+				"date":  "2026-02-08",
+				"start": "09:00",
+				"end":   "10:30",
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodPost,
+		Path:          "/2.0/timesheet",
+		Authorization: "Bearer test-token",
+		Body: bexioCreateTimesheetRequest{
+			UserID:          4,
+			StatusID:        2,
+			AllowableBill:   true,
+			ClientServiceID: 99,
+			Text:            "Build acceptance test with defaults",
+			Tracking: trackingRange{
+				Type:  "range",
+				Date:  "2026-02-08",
+				Start: "09:00",
+				End:   "10:30",
+			},
+		},
+	}, env.fakeAPI.Received())
+
+	assert.False(t, result.IsError)
+	assert.True(t, len(result.Content) > 0, "result should have content")
+}
+
 func TestDeleteTimesheetAcceptance(t *testing.T) {
 	// Slice: Edit & Delete Timesheet
 	// Given an existing timesheet entry, when the client calls delete_timesheet with an id, then the entry is deleted from Bexio and the tool confirms deletion.

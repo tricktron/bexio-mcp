@@ -32,8 +32,23 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 		server,
 		"create_timesheet",
 		"Create a timesheet entry in Bexio",
-		func(ctx context.Context, input bexioCreateTimesheetRequest) (any, error) {
-			created, err := bexio.CreateTimesheet(ctx, input)
+		func(ctx context.Context, input createTimesheetInput) (any, error) {
+			request := bexioCreateTimesheetRequest{
+				AllowableBill:   input.AllowableBill,
+				ClientServiceID: input.ClientServiceID,
+				Tracking:        input.Tracking,
+				Text:            input.Text,
+				ContactID:       input.ContactID,
+				PrProjectID:     input.PrProjectID,
+			}
+			if input.UserID != nil {
+				request.UserID = *input.UserID
+			}
+			if input.StatusID != nil {
+				request.StatusID = *input.StatusID
+			}
+
+			created, err := bexio.CreateTimesheet(ctx, request)
 			if err != nil {
 				return nil, fmt.Errorf("create timesheet: %w", err)
 			}

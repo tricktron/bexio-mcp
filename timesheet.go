@@ -7,8 +7,20 @@ type trackingRange struct {
 	End   string `json:"end"`
 }
 
+type createTimesheetInput struct {
+	UserID          *int          `json:"user_id,omitempty"`
+	StatusID        *int          `json:"status_id,omitempty"`
+	AllowableBill   bool          `json:"allowable_bill"`
+	ClientServiceID int           `json:"client_service_id"`
+	Tracking        trackingRange `json:"tracking"`
+	Text            string        `json:"text,omitempty"`
+	ContactID       *int          `json:"contact_id,omitempty"`
+	PrProjectID     *int          `json:"pr_project_id,omitempty"`
+}
+
 type bexioCreateTimesheetRequest struct {
 	UserID          int           `json:"user_id"`
+	StatusID        int           `json:"status_id,omitempty"`
 	AllowableBill   bool          `json:"allowable_bill"`
 	ClientServiceID int           `json:"client_service_id"`
 	Tracking        trackingRange `json:"tracking"`
