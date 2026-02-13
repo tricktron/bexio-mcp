@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 const (
 	timesheetEndpoint     = "/2.0/timesheet"
+	projectEndpoint       = "/2.0/pr_project"
 	contactEndpoint       = "/2.0/contact"
 	clientServiceEndpoint = "/2.0/client_service"
 )
@@ -84,6 +86,31 @@ func (c BexioClient) ListClientServices(ctx context.Context) (json.RawMessage, e
 
 func (c BexioClient) ListPackages(ctx context.Context, projectID int) (json.RawMessage, error) {
 	return c.getRaw(ctx, fmt.Sprintf("/3.0/projects/%d/packages", projectID))
+}
+
+func (c BexioClient) SearchProjects(ctx context.Context, contactID *int) (json.RawMessage, error) {
+	fields := make([]bexioSearchField, 0, 1)
+	if contactID != nil {
+		fields = append(fields, bexioSearchField{Field: "contact_id", Value: strconv.Itoa(*contactID), Criteria: "="})
+	}
+
+	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, projectEndpoint+"/search", fields)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer body.Close()
+
+	raw, err := io.ReadAll(body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	return json.RawMessage(raw), nil
 }
 
 func (c BexioClient) getRaw(ctx context.Context, endpoint string) (json.RawMessage, error) {
