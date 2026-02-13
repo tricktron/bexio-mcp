@@ -9,7 +9,11 @@ import (
 	"net/http"
 )
 
-const timesheetEndpoint = "/2.0/timesheet"
+const (
+	timesheetEndpoint     = "/2.0/timesheet"
+	contactEndpoint       = "/2.0/contact"
+	clientServiceEndpoint = "/2.0/client_service"
+)
 
 type BexioClient struct {
 	baseURL    string
@@ -71,23 +75,43 @@ func (c BexioClient) SearchTimesheets(ctx context.Context, fields []bexioSearchF
 }
 
 func (c BexioClient) ListContacts(ctx context.Context) (json.RawMessage, error) {
-	httpReq, err := c.newRequest(ctx, http.MethodGet, "/2.0/contact", nil)
+	httpReq, err := c.newRequest(ctx, http.MethodGet, contactEndpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
 
-	httpResp, err := c.httpClient.Do(httpReq)
+	body, err := c.doRequest(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("send request: %w", err)
+		return nil, err
 	}
-	defer httpResp.Body.Close()
+	defer body.Close()
 
-	body, err := io.ReadAll(httpResp.Body)
+	rawContacts, err := io.ReadAll(body)
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}
 
-	return json.RawMessage(body), nil
+	return json.RawMessage(rawContacts), nil
+}
+
+func (c BexioClient) ListClientServices(ctx context.Context) (json.RawMessage, error) {
+	httpReq, err := c.newRequest(ctx, http.MethodGet, clientServiceEndpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+
+	body, err := c.doRequest(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer body.Close()
+
+	rawClientServices, err := io.ReadAll(body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	return json.RawMessage(rawClientServices), nil
 }
 
 func (c BexioClient) newJSONRequest(ctx context.Context, method, path string, payload any) (*http.Request, error) {
@@ -106,18 +130,27 @@ func (c BexioClient) newJSONRequest(ctx context.Context, method, path string, pa
 }
 
 func (c BexioClient) doAndDecode(httpReq *http.Request, target any) error {
-	httpResp, err := c.httpClient.Do(httpReq)
+	body, err := c.doRequest(httpReq)
 	if err != nil {
-		return fmt.Errorf("send request: %w", err)
+		return err
 	}
-	defer httpResp.Body.Close()
+	defer body.Close()
 
-	err = decodeJSON(httpResp.Body, target)
+	err = decodeJSON(body, target)
 	if err != nil {
 		return fmt.Errorf("decode response: %w", err)
 	}
 
 	return nil
+}
+
+func (c BexioClient) doRequest(httpReq *http.Request) (io.ReadCloser, error) {
+	httpResp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("send request: %w", err)
+	}
+
+	return httpResp.Body, nil
 }
 
 func (c BexioClient) newRequest(ctx context.Context, method, path string, body io.Reader) (*http.Request, error) {
