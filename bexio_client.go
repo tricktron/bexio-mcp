@@ -70,6 +70,26 @@ func (c BexioClient) SearchTimesheets(ctx context.Context, fields []bexioSearchF
 	return timesheets, nil
 }
 
+func (c BexioClient) ListContacts(ctx context.Context) (json.RawMessage, error) {
+	httpReq, err := c.newRequest(ctx, http.MethodGet, "/2.0/contact", nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+
+	httpResp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("send request: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	body, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	return json.RawMessage(body), nil
+}
+
 func (c BexioClient) newJSONRequest(ctx context.Context, method, path string, payload any) (*http.Request, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
