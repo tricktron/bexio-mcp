@@ -192,3 +192,43 @@ None
 
 ### Recall Answers
 N/A
+
+---
+
+## 2026-02-13: Auto-resolve Timesheet Defaults
+
+### Acceptance Test
+- `TestCreateTimesheetAutoResolveDefaultsAcceptance`: calls `create_timesheet` without `user_id`/`status_id`, verifies POST body contains resolved user_id=4 (from /users/me) and status_id=2 (from /timesheet_status -> "Erledigt")
+
+### Architecture
+```mermaid
+graph TD
+    MCP[create_timesheet handler] --> Parse[parseCurrentUserID / parseTimesheetStatuses]
+    MCP --> Resolve[resolveTimesheetDefaults]
+    Resolve --> Request[bexioCreateTimesheetRequest]
+    MCP --> BexioClient
+    BexioClient --> API[(bexio API)]
+```
+
+### Core Classes Discovered
+- `resolveTimesheetDefaults` — pure mapper: optional inputs + lookup results -> resolved request
+- `resolveUserID` / `resolveStatusID` — resolution helpers
+- `parseCurrentUserID` / `parseTimesheetStatuses` — JSON -> domain type parsers
+- `timesheetStatus` — `{ID, Name}` domain type
+- `createTimesheetInput` — MCP-facing input with optional user_id/status_id
+
+### Unit Tests
+| Test | Component | Behavior |
+| ---- | --------- | -------- |
+| TestResolveTimesheetDefaults (3 cases) | resolveTimesheetDefaults | Resolves missing defaults, preserves explicit values |
+| TestParseCurrentUserID (2 cases) | parseCurrentUserID | Parses user ID from JSON, errors on malformed |
+| TestParseTimesheetStatuses (2 cases) | parseTimesheetStatuses | Parses status list from JSON, errors on malformed |
+
+### Stats
+- Iterations: 3
+
+### Discoveries
+None
+
+### Recall Answers
+Skipped
