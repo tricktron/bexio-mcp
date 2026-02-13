@@ -167,6 +167,18 @@ func (c BexioClient) doRequest(httpReq *http.Request) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("send request: %w", err)
 	}
 
+	if httpResp.StatusCode < 200 || httpResp.StatusCode >= 300 {
+		defer httpResp.Body.Close()
+
+		body, _ := io.ReadAll(httpResp.Body)
+
+		return nil, fmt.Errorf(
+			"bexio API %s %s: status %d: %s",
+			httpReq.Method, httpReq.URL.Path,
+			httpResp.StatusCode, body,
+		)
+	}
+
 	return httpResp.Body, nil
 }
 

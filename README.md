@@ -76,7 +76,13 @@ Claude Desktop (`claude_desktop_config.json`):
 
 ## Available Tools
 
-- `create_timesheet`: create one timesheet entry in bexio
+- `create_timesheet`: create a timesheet entry in Bexio
+- `list_timesheets`: list timesheet entries in Bexio
+- `search_timesheets`: search timesheet entries in Bexio
+- `list_contacts`: list contacts in Bexio
+- `list_projects`: list projects in Bexio (optional contact_id filter)
+- `list_client_services`: list client services (Tätigkeiten) in Bexio
+- `list_packages`: list work packages for a project in Bexio
 
 ## Development
 

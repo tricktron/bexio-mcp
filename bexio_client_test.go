@@ -283,6 +283,28 @@ func TestBexioClientListPackages(t *testing.T) {
 	assert.True(t, strings.Contains(string(result), "Backend Sprint"), "result should contain package data")
 }
 
+func TestBexioClientReturnsErrorOnNon2xxStatus(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = w.Write([]byte(`{"error":"invalid field"}`))
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
+
+	_, err := client.CreateTimesheet(context.Background(), bexioCreateTimesheetRequest{
+		UserID:          1,
+		ClientServiceID: 1,
+		Tracking:        trackingRange{Type: "range", Start: "09:00", End: "10:00"},
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "status 422")
+	assert.Contains(t, err.Error(), "invalid field")
+}
+
 func newTimesheetServer(t *testing.T, received *fakeBexioCapturedRequest, response bexioTimesheet) *httptest.Server {
 	t.Helper()
 
