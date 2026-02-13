@@ -1,7 +1,7 @@
 # 0003: Manual Smoke Test Then OpenAPI Contract Tests
 
 ## Status
-Accepted
+Accepted (Phase 2 superseded by ADR 0004 — real API contract tests replace OpenAPI validation)
 
 ## Context
 We have a working MCP server with two test layers (unit + acceptance), but both test against hand-crafted fakes. We don't know if the code works against the real Bexio API. Key unknowns:
@@ -49,6 +49,19 @@ graph LR
         B --> C --> D
     end
 ```
+
+## Smoke Test Findings (Phase 1 — completed 2026-02-13)
+
+Phase 1 revealed 4 issues, 3 actionable:
+
+| Finding | Signal | Action |
+| --- | --- | --- |
+| Fake tracking format returns `"09:00"` but real API returns `"2026-02-13 09:00:00"` | assumption-invalid | Fix fakes to use datetime format |
+| `bexioTimesheet` drops 12 response fields | scope-change | Add `status_id`, `date`, `duration`, `running`. Skip travel/charge fields (noise). |
+| `POST /2.0/pr_project/search` with `[]` body returns 415 | assumption-invalid | Use `GET /2.0/pr_project` when no filter provided |
+| List endpoints cap at 500 items, no pagination | scope-change | Deferred — sufficient for single-user MCP tool |
+
+These fixes are tracked in slice `10-fix-smoke-test-findings` and must be completed before Phase 2 (contract tests, slice 09).
 
 ## Consequences
 - Manual test may reveal struct mismatches (likely: tracking date-time format, missing response fields) that need fixing before contract tests
