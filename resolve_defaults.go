@@ -5,8 +5,12 @@ type timesheetStatus struct {
 	Name string
 }
 
+const completedStatusName = "Erledigt"
+
 func resolveTimesheetDefaults(input createTimesheetInput, currentUserID int, statuses []timesheetStatus) bexioCreateTimesheetRequest {
-	request := bexioCreateTimesheetRequest{
+	return bexioCreateTimesheetRequest{
+		UserID:          resolveUserID(input.UserID, currentUserID),
+		StatusID:        resolveStatusID(input.StatusID, statuses),
 		AllowableBill:   input.AllowableBill,
 		ClientServiceID: input.ClientServiceID,
 		Tracking:        input.Tracking,
@@ -14,24 +18,26 @@ func resolveTimesheetDefaults(input createTimesheetInput, currentUserID int, sta
 		ContactID:       input.ContactID,
 		PrProjectID:     input.PrProjectID,
 	}
+}
 
-	if input.UserID != nil {
-		request.UserID = *input.UserID
-	} else {
-		request.UserID = currentUserID
+func resolveUserID(inputUserID *int, currentUserID int) int {
+	if inputUserID != nil {
+		return *inputUserID
 	}
 
-	if input.StatusID != nil {
-		request.StatusID = *input.StatusID
-		return request
+	return currentUserID
+}
+
+func resolveStatusID(inputStatusID *int, statuses []timesheetStatus) int {
+	if inputStatusID != nil {
+		return *inputStatusID
 	}
 
 	for _, status := range statuses {
-		if status.Name == "Erledigt" {
-			request.StatusID = status.ID
-			return request
+		if status.Name == completedStatusName {
+			return status.ID
 		}
 	}
 
-	return request
+	return 0
 }
