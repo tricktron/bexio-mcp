@@ -95,6 +95,26 @@ None
 ### Recall Answers
 N/A
 
+## Slice 05: Timesheet Status & Current User
+
+### Acceptance Tests
+- `TestListTimesheetStatusesAcceptance`: calls `list_timesheet_statuses`, verifies GET /2.0/timesheet_status, response contains "Erledigt"
+- `TestGetCurrentUserAcceptance`: calls `get_current_user`, verifies GET /3.0/users/me, response contains "Rudolph"
+
+### Architecture
+No structural changes - both tools reuse the existing `getRaw` shell pattern.
+
+### Core Classes Discovered
+None.
+
+### Unit Tests
+None needed - no new core logic.
+
+### Observations
+- Both endpoints are pure HTTP passthrough with no domain logic
+- The slice as written doesn't contain the "resolve defaults" behavior - that logic would live in a future slice that uses these lookup tools
+- TDD ceremony was skipped since there was no new behavior to drive
+
 ## Slice 03: Lookup Tools (Contacts, Projects, Packages, Services)
 
 ### Acceptance Tests
