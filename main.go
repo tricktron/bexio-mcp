@@ -143,9 +143,18 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) {
 		"list_projects",
 		"List projects in Bexio",
 		func(ctx context.Context, input bexioListProjectsRequest) (any, error) {
+			if input.ContactID == nil {
+				projects, err := bexio.ListProjects(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("list projects: %w", err)
+				}
+
+				return projects, nil
+			}
+
 			projects, err := bexio.SearchProjects(ctx, input.ContactID)
 			if err != nil {
-				return nil, fmt.Errorf("list projects: %w", err)
+				return nil, fmt.Errorf("search projects: %w", err)
 			}
 
 			return projects, nil
