@@ -89,6 +89,69 @@ func TestBexioClientDeleteTimesheet(t *testing.T) {
 	assert.Equal(t, json.RawMessage(responseBody), result)
 }
 
+func TestBexioClientEditTimesheet(t *testing.T) {
+	t.Parallel()
+
+	request := bexioCreateTimesheetRequest{
+		UserID:          42,
+		AllowableBill:   true,
+		ClientServiceID: 99,
+		Text:            "Updated acceptance test",
+		ContactID:       intPtr(11),
+		PrProjectID:     intPtr(12),
+		Tracking: trackingRange{
+			Type:  "range",
+			Date:  "2026-02-08",
+			Start: "13:00",
+			End:   "14:30",
+		},
+	}
+
+	expected := bexioTimesheet{
+		ID:              777,
+		UserID:          request.UserID,
+		AllowableBill:   request.AllowableBill,
+		ClientServiceID: request.ClientServiceID,
+		Text:            request.Text,
+		ContactID:       request.ContactID,
+		PrProjectID:     request.PrProjectID,
+		Tracking:        request.Tracking,
+	}
+
+	received := fakeBexioCapturedRequest{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		var body bexioCreateTimesheetRequest
+		err := json.NewDecoder(r.Body).Decode(&body)
+		assert.NoError(t, err)
+
+		received = fakeBexioCapturedRequest{
+			Method:        r.Method,
+			Path:          r.URL.Path,
+			Authorization: r.Header.Get("Authorization"),
+			Body:          body,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(expected)
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
+
+	result, err := client.EditTimesheet(context.Background(), 777, request)
+	assert.NoError(t, err)
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodPost,
+		Path:          "/2.0/timesheet/777",
+		Authorization: "Bearer test-token",
+		Body:          request,
+	}, received)
+	assert.Equal(t, expected, result)
+}
+
 func TestBexioClientListTimesheets(t *testing.T) {
 	t.Parallel()
 

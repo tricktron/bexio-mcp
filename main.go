@@ -49,6 +49,19 @@ func newMCPServer(bexio BexioClient) *mcp.Server {
 	)
 	registerTool(
 		server,
+		"edit_timesheet",
+		"Edit a timesheet entry in Bexio",
+		func(ctx context.Context, input bexioEditTimesheetRequest) (any, error) {
+			updated, err := bexio.EditTimesheet(ctx, input.ID, input.bexioCreateTimesheetRequest)
+			if err != nil {
+				return nil, fmt.Errorf("edit timesheet: %w", err)
+			}
+
+			return updated, nil
+		},
+	)
+	registerTool(
+		server,
 		"list_timesheets",
 		"List timesheet entries in Bexio",
 		func(ctx context.Context, _ struct{}) (any, error) {

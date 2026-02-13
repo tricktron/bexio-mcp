@@ -47,6 +47,25 @@ func (c BexioClient) CreateTimesheet(ctx context.Context, req bexioCreateTimeshe
 	return created, nil
 }
 
+func (c BexioClient) EditTimesheet(
+	ctx context.Context,
+	id int,
+	req bexioCreateTimesheetRequest,
+) (bexioTimesheet, error) {
+	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, fmt.Sprintf("%s/%d", timesheetEndpoint, id), req)
+	if err != nil {
+		return bexioTimesheet{}, err
+	}
+
+	var edited bexioTimesheet
+	err = c.doAndDecode(httpReq, &edited)
+	if err != nil {
+		return bexioTimesheet{}, err
+	}
+
+	return edited, nil
+}
+
 func (c BexioClient) DeleteTimesheet(ctx context.Context, id int) (json.RawMessage, error) {
 	httpReq, err := c.newRequest(ctx, http.MethodDelete, fmt.Sprintf("%s/%d", timesheetEndpoint, id), nil)
 	if err != nil {

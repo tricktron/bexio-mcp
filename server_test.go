@@ -90,6 +90,77 @@ func TestDeleteTimesheetAcceptance(t *testing.T) {
 	assert.Equal(t, `{"success":true}`, textContent.Text)
 }
 
+func TestEditTimesheetAcceptance(t *testing.T) {
+	// Slice: Edit & Delete Timesheet
+	// Given an existing timesheet entry, when the client calls edit_timesheet with an id and updated fields, then the entry is updated in bexio and the tool returns the updated entry.
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "edit_timesheet",
+		Arguments: map[string]any{
+			"id":                777,
+			"user_id":           42,
+			"allowable_bill":    true,
+			"client_service_id": 99,
+			"contact_id":        11,
+			"pr_project_id":     12,
+			"text":              "Updated acceptance test",
+			"tracking": map[string]any{
+				"type":  "range",
+				"date":  "2026-02-08",
+				"start": "13:00",
+				"end":   "14:30",
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodPost,
+		Path:          "/2.0/timesheet/777",
+		Authorization: "Bearer test-token",
+		Body: bexioCreateTimesheetRequest{
+			UserID:          42,
+			AllowableBill:   true,
+			ClientServiceID: 99,
+			ContactID:       intPtr(11),
+			PrProjectID:     intPtr(12),
+			Text:            "Updated acceptance test",
+			Tracking: trackingRange{
+				Type:  "range",
+				Date:  "2026-02-08",
+				Start: "13:00",
+				End:   "14:30",
+			},
+		},
+	}, env.fakeAPI.Received())
+
+	assert.False(t, result.IsError)
+	assert.Equal(t, 1, len(result.Content))
+
+	textContent, ok := result.Content[0].(*mcp.TextContent)
+	assert.True(t, ok, "result should contain one text content item")
+
+	var updated bexioTimesheet
+	err = json.Unmarshal([]byte(textContent.Text), &updated)
+	assert.NoError(t, err)
+	assert.Equal(t, bexioTimesheet{
+		ID:              777,
+		UserID:          42,
+		AllowableBill:   true,
+		ClientServiceID: 99,
+		ContactID:       intPtr(11),
+		PrProjectID:     intPtr(12),
+		Text:            "Updated acceptance test",
+		Tracking: trackingRange{
+			Type:  "range",
+			Date:  "2026-02-08",
+			Start: "13:00",
+			End:   "14:30",
+		},
+	}, updated)
+}
+
 func TestListTimesheetsAcceptance(t *testing.T) {
 	// Slice: List & Search Timesheets
 	// Given a running MCP server, when the client calls list_timesheets, then the tool returns a list of recent timesheet entries.
@@ -425,6 +496,42 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 
 			w.Header().Set("Content-Type", "application/json")
 			if err := json.NewEncoder(w).Encode(entries); err != nil {
+				t.Fatal(err)
+			}
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/2.0/timesheet/") && r.URL.Path != "/2.0/timesheet/search":
+			idText := strings.TrimPrefix(r.URL.Path, "/2.0/timesheet/")
+			id, err := strconv.Atoi(idText)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var reqBody bexioCreateTimesheetRequest
+			if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+				t.Fatal(err)
+			}
+
+			api.mu.Lock()
+			api.captured = fakeBexioCapturedRequest{
+				Method:        r.Method,
+				Path:          r.URL.Path,
+				Authorization: r.Header.Get("Authorization"),
+				Body:          reqBody,
+			}
+			api.mu.Unlock()
+
+			updated := bexioTimesheet{
+				ID:              id,
+				UserID:          reqBody.UserID,
+				AllowableBill:   reqBody.AllowableBill,
+				ClientServiceID: reqBody.ClientServiceID,
+				Text:            reqBody.Text,
+				ContactID:       reqBody.ContactID,
+				PrProjectID:     reqBody.PrProjectID,
+				Tracking:        reqBody.Tracking,
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(updated); err != nil {
 				t.Fatal(err)
 			}
 		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/2.0/timesheet/"):
