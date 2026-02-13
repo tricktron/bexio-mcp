@@ -45,6 +45,7 @@ func TestCreateTimesheetAcceptance(t *testing.T) {
 		Authorization: "Bearer test-token",
 		Body: bexioCreateTimesheetRequest{
 			UserID:          42,
+			StatusID:        2,
 			AllowableBill:   true,
 			ClientServiceID: 99,
 			ContactID:       intPtr(11),

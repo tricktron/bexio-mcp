@@ -1,13 +1,22 @@
 package main
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 type timesheetStatus struct {
-	ID   int
-	Name string
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 const completedStatusName = "Erledigt"
 
-func resolveTimesheetDefaults(input createTimesheetInput, currentUserID int, statuses []timesheetStatus) bexioCreateTimesheetRequest {
+func resolveTimesheetDefaults(
+	input createTimesheetInput,
+	currentUserID int,
+	statuses []timesheetStatus,
+) bexioCreateTimesheetRequest {
 	return bexioCreateTimesheetRequest{
 		UserID:          resolveUserID(input.UserID, currentUserID),
 		StatusID:        resolveStatusID(input.StatusID, statuses),
@@ -40,4 +49,26 @@ func resolveStatusID(inputStatusID *int, statuses []timesheetStatus) int {
 	}
 
 	return 0
+}
+
+func parseCurrentUserID(raw json.RawMessage) (int, error) {
+	var user struct {
+		ID int `json:"id"`
+	}
+
+	if err := json.Unmarshal(raw, &user); err != nil {
+		return 0, fmt.Errorf("parse current user payload: %w", err)
+	}
+
+	return user.ID, nil
+}
+
+func parseTimesheetStatuses(raw json.RawMessage) ([]timesheetStatus, error) {
+	var statuses []timesheetStatus
+
+	if err := json.Unmarshal(raw, &statuses); err != nil {
+		return nil, fmt.Errorf("parse timesheet statuses payload: %w", err)
+	}
+
+	return statuses, nil
 }

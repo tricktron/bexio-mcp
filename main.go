@@ -27,26 +27,40 @@ func newMCPServer(bexio BexioClient) *mcp.Server {
 	return server
 }
 
+//nolint:gocognit // keep timesheet registrations inline for consistency
 func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 	registerTool(
 		server,
 		"create_timesheet",
 		"Create a timesheet entry in Bexio",
 		func(ctx context.Context, input createTimesheetInput) (any, error) {
-			request := bexioCreateTimesheetRequest{
-				AllowableBill:   input.AllowableBill,
-				ClientServiceID: input.ClientServiceID,
-				Tracking:        input.Tracking,
-				Text:            input.Text,
-				ContactID:       input.ContactID,
-				PrProjectID:     input.PrProjectID,
+			var currentUserID int
+			if input.UserID == nil {
+				rawCurrentUser, err := bexio.GetCurrentUser(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("get current user: %w", err)
+				}
+
+				currentUserID, err = parseCurrentUserID(rawCurrentUser)
+				if err != nil {
+					return nil, fmt.Errorf("parse current user id: %w", err)
+				}
 			}
-			if input.UserID != nil {
-				request.UserID = *input.UserID
+
+			var statuses []timesheetStatus
+			if input.StatusID == nil {
+				rawStatuses, err := bexio.ListTimesheetStatuses(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("list timesheet statuses: %w", err)
+				}
+
+				statuses, err = parseTimesheetStatuses(rawStatuses)
+				if err != nil {
+					return nil, fmt.Errorf("parse timesheet statuses: %w", err)
+				}
 			}
-			if input.StatusID != nil {
-				request.StatusID = *input.StatusID
-			}
+
+			request := resolveTimesheetDefaults(input, currentUserID, statuses)
 
 			created, err := bexio.CreateTimesheet(ctx, request)
 			if err != nil {
