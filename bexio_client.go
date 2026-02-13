@@ -15,6 +15,7 @@ const (
 	projectEndpoint       = "/2.0/pr_project"
 	contactEndpoint       = "/2.0/contact"
 	clientServiceEndpoint = "/2.0/client_service"
+	searchEndpointSuffix  = "/search"
 )
 
 type BexioClient struct {
@@ -62,7 +63,7 @@ func (c BexioClient) ListTimesheets(ctx context.Context) ([]bexioTimesheet, erro
 }
 
 func (c BexioClient) SearchTimesheets(ctx context.Context, fields []bexioSearchField) ([]bexioTimesheet, error) {
-	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, timesheetEndpoint+"/search", fields)
+	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, timesheetEndpoint+searchEndpointSuffix, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -94,23 +95,7 @@ func (c BexioClient) SearchProjects(ctx context.Context, contactID *int) (json.R
 		fields = append(fields, bexioSearchField{Field: "contact_id", Value: strconv.Itoa(*contactID), Criteria: "="})
 	}
 
-	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, projectEndpoint+"/search", fields)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(httpReq)
-	if err != nil {
-		return nil, err
-	}
-	defer body.Close()
-
-	raw, err := io.ReadAll(body)
-	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
-	}
-
-	return json.RawMessage(raw), nil
+	return c.postRaw(ctx, projectEndpoint+searchEndpointSuffix, fields)
 }
 
 func (c BexioClient) getRaw(ctx context.Context, endpoint string) (json.RawMessage, error) {
@@ -119,6 +104,19 @@ func (c BexioClient) getRaw(ctx context.Context, endpoint string) (json.RawMessa
 		return nil, fmt.Errorf("build request: %w", err)
 	}
 
+	return c.readRawResponse(httpReq)
+}
+
+func (c BexioClient) postRaw(ctx context.Context, endpoint string, payload any) (json.RawMessage, error) {
+	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, endpoint, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.readRawResponse(httpReq)
+}
+
+func (c BexioClient) readRawResponse(httpReq *http.Request) (json.RawMessage, error) {
 	body, err := c.doRequest(httpReq)
 	if err != nil {
 		return nil, err

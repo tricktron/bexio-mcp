@@ -124,6 +124,121 @@ func TestSearchTimesheetsAcceptance(t *testing.T) {
 	)
 }
 
+func TestListContactsAcceptance(t *testing.T) {
+	// Slice: Lookup Tools (Contacts, Projects, Packages, Services)
+	// Given a running MCP server, when the client calls list_contacts, then the tool returns a list of contacts with id and name.
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "list_contacts",
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/2.0/contact",
+		Authorization: "Bearer test-token",
+	}, env.fakeAPI.Received())
+
+	contentJSON, err := json.Marshal(result.Content)
+	assert.NoError(t, err)
+	assert.False(t, result.IsError)
+	assert.True(
+		t,
+		strings.Contains(string(contentJSON), "Acme Corp"),
+		"result should contain contact entries",
+	)
+}
+
+func TestListProjectsAcceptance(t *testing.T) {
+	// Slice: Lookup Tools (Contacts, Projects, Packages, Services)
+	// Given a running MCP server, when the client calls list_projects with an optional contact_id filter, then the tool returns projects associated with that contact.
+	env := newAcceptanceEnv(t)
+
+	searchFields := []bexioSearchField{
+		{Field: "contact_id", Value: "11", Criteria: "="},
+	}
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "list_projects",
+		Arguments: map[string]any{
+			"contact_id": 11,
+		},
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodPost,
+		Path:          "/2.0/pr_project/search",
+		Authorization: "Bearer test-token",
+		SearchBody:    searchFields,
+	}, env.fakeAPI.Received())
+
+	contentJSON, err := json.Marshal(result.Content)
+	assert.NoError(t, err)
+	assert.False(t, result.IsError)
+	assert.True(
+		t,
+		strings.Contains(string(contentJSON), "Project Alpha"),
+		"result should contain project entries",
+	)
+}
+
+func TestListClientServicesAcceptance(t *testing.T) {
+	// Slice: Lookup Tools (Contacts, Projects, Packages, Services)
+	// Given a running MCP server, when the client calls list_client_services, then the tool returns available business activities (Taetigkeiten).
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "list_client_services",
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/2.0/client_service",
+		Authorization: "Bearer test-token",
+	}, env.fakeAPI.Received())
+
+	contentJSON, err := json.Marshal(result.Content)
+	assert.NoError(t, err)
+	assert.False(t, result.IsError)
+	assert.True(
+		t,
+		strings.Contains(string(contentJSON), "Engineering"),
+		"result should contain client service entries",
+	)
+}
+
+func TestListPackagesAcceptance(t *testing.T) {
+	// Slice: Lookup Tools (Contacts, Projects, Packages, Services)
+	// Given a running MCP server, when the client calls list_packages with a project_id, then the tool returns work packages for that project.
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "list_packages",
+		Arguments: map[string]any{
+			"project_id": 5,
+		},
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/3.0/projects/5/packages",
+		Authorization: "Bearer test-token",
+	}, env.fakeAPI.Received())
+
+	contentJSON, err := json.Marshal(result.Content)
+	assert.NoError(t, err)
+	assert.False(t, result.IsError)
+	assert.True(
+		t,
+		strings.Contains(string(contentJSON), "Backend Sprint"),
+		"result should contain package entries",
+	)
+}
+
 type fakeBexioAPI struct {
 	URL    string
 	server *httptest.Server
@@ -282,6 +397,83 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 
 			w.Header().Set("Content-Type", "application/json")
 			if err := json.NewEncoder(w).Encode(entries); err != nil {
+				t.Fatal(err)
+			}
+		case r.Method == http.MethodGet && r.URL.Path == "/2.0/contact":
+			api.mu.Lock()
+			api.captured = fakeBexioCapturedRequest{
+				Method:        r.Method,
+				Path:          r.URL.Path,
+				Authorization: r.Header.Get("Authorization"),
+			}
+			api.mu.Unlock()
+
+			contacts := []map[string]any{
+				{"id": 11, "name_1": "Acme Corp", "name_2": ""},
+				{"id": 12, "name_1": "Globex Inc", "name_2": ""},
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(contacts); err != nil {
+				t.Fatal(err)
+			}
+		case r.Method == http.MethodPost && r.URL.Path == "/2.0/pr_project/search":
+			var reqBody []bexioSearchField
+			if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+				t.Fatal(err)
+			}
+
+			api.mu.Lock()
+			api.captured = fakeBexioCapturedRequest{
+				Method:        r.Method,
+				Path:          r.URL.Path,
+				Authorization: r.Header.Get("Authorization"),
+				SearchBody:    reqBody,
+			}
+			api.mu.Unlock()
+
+			projects := []map[string]any{
+				{"id": 501, "name": "Project Alpha", "contact_id": 11},
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(projects); err != nil {
+				t.Fatal(err)
+			}
+		case r.Method == http.MethodGet && r.URL.Path == "/2.0/client_service":
+			api.mu.Lock()
+			api.captured = fakeBexioCapturedRequest{
+				Method:        r.Method,
+				Path:          r.URL.Path,
+				Authorization: r.Header.Get("Authorization"),
+			}
+			api.mu.Unlock()
+
+			services := []map[string]any{
+				{"id": 77, "name": "Engineering"},
+				{"id": 78, "name": "Consulting"},
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(services); err != nil {
+				t.Fatal(err)
+			}
+		case r.Method == http.MethodGet && r.URL.Path == "/3.0/projects/5/packages":
+			api.mu.Lock()
+			api.captured = fakeBexioCapturedRequest{
+				Method:        r.Method,
+				Path:          r.URL.Path,
+				Authorization: r.Header.Get("Authorization"),
+			}
+			api.mu.Unlock()
+
+			packages := []map[string]any{
+				{"id": 61, "name": "Backend Sprint"},
+				{"id": 62, "name": "QA Run"},
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(packages); err != nil {
 				t.Fatal(err)
 			}
 		default:

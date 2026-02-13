@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
@@ -139,6 +140,147 @@ func TestBexioClientSearchTimesheets(t *testing.T) {
 		SearchBody:    searchFields,
 	}, received)
 	assert.Equal(t, expected, result)
+}
+
+func TestBexioClientListContacts(t *testing.T) {
+	t.Parallel()
+
+	const responseBody = `[{"id":1,"name_1":"Acme Corp","name_2":""}]`
+
+	received := fakeBexioCapturedRequest{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		received = fakeBexioCapturedRequest{
+			Method:        r.Method,
+			Path:          r.URL.Path,
+			Authorization: r.Header.Get("Authorization"),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(responseBody))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
+
+	result, err := client.ListContacts(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/2.0/contact",
+		Authorization: "Bearer test-token",
+	}, received)
+	assert.True(t, strings.Contains(string(result), "Acme Corp"), "result should contain contact data")
+}
+
+func TestBexioClientSearchProjects(t *testing.T) {
+	t.Parallel()
+
+	const responseBody = `[{"id":501,"name":"Project Alpha","contact_id":11}]`
+
+	contactID := 11
+	expectedSearchBody := []bexioSearchField{{Field: "contact_id", Value: "11", Criteria: "="}}
+
+	received := fakeBexioCapturedRequest{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		var body []bexioSearchField
+		err := json.NewDecoder(r.Body).Decode(&body)
+		assert.NoError(t, err)
+
+		received = fakeBexioCapturedRequest{
+			Method:        r.Method,
+			Path:          r.URL.Path,
+			Authorization: r.Header.Get("Authorization"),
+			SearchBody:    body,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write([]byte(responseBody))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
+
+	result, err := client.SearchProjects(context.Background(), &contactID)
+	assert.NoError(t, err)
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodPost,
+		Path:          "/2.0/pr_project/search",
+		Authorization: "Bearer test-token",
+		SearchBody:    expectedSearchBody,
+	}, received)
+	assert.True(t, strings.Contains(string(result), "Project Alpha"), "result should contain project data")
+}
+
+func TestBexioClientListClientServices(t *testing.T) {
+	t.Parallel()
+
+	const responseBody = `[{"id":77,"name":"Engineering"},{"id":78,"name":"Consulting"}]`
+
+	received := fakeBexioCapturedRequest{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		received = fakeBexioCapturedRequest{
+			Method:        r.Method,
+			Path:          r.URL.Path,
+			Authorization: r.Header.Get("Authorization"),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(responseBody))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
+
+	result, err := client.ListClientServices(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/2.0/client_service",
+		Authorization: "Bearer test-token",
+	}, received)
+	assert.True(t, strings.Contains(string(result), "Engineering"), "result should contain client service data")
+}
+
+func TestBexioClientListPackages(t *testing.T) {
+	t.Parallel()
+
+	const responseBody = `[{"id":61,"name":"Backend Sprint"},{"id":62,"name":"QA Run"}]`
+
+	received := fakeBexioCapturedRequest{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		received = fakeBexioCapturedRequest{
+			Method:        r.Method,
+			Path:          r.URL.Path,
+			Authorization: r.Header.Get("Authorization"),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(responseBody))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
+
+	result, err := client.ListPackages(context.Background(), 5)
+	assert.NoError(t, err)
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/3.0/projects/5/packages",
+		Authorization: "Bearer test-token",
+	}, received)
+	assert.True(t, strings.Contains(string(result), "Backend Sprint"), "result should contain package data")
 }
 
 func newTimesheetServer(t *testing.T, received *fakeBexioCapturedRequest, response bexioTimesheet) *httptest.Server {
