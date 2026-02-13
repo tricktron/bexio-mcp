@@ -208,7 +208,7 @@ func TestEditTimesheetAcceptance(t *testing.T) {
 
 func TestListTimesheetsAcceptance(t *testing.T) {
 	// Slice: List & Search Timesheets
-	// Given a running MCP server, when the client calls list_timesheets, then the tool returns a list of recent timesheet entries.
+	// Given a running MCP server, when the client calls list_timesheets, then the tool returns recent timesheet entries with realistic tracking datetime format and core API fields.
 	env := newAcceptanceEnv(t)
 
 	result, err := env.callTool(&mcp.CallToolParams{
@@ -222,14 +222,26 @@ func TestListTimesheetsAcceptance(t *testing.T) {
 		Authorization: "Bearer test-token",
 	}, env.fakeAPI.Received())
 
-	contentJSON, err := json.Marshal(result.Content)
-	assert.NoError(t, err)
 	assert.False(t, result.IsError)
-	assert.True(
-		t,
-		strings.Contains(string(contentJSON), "list-entry-1"),
-		"result should contain timesheet entries",
-	)
+	assert.Equal(t, 1, len(result.Content))
+
+	textContent, ok := result.Content[0].(*mcp.TextContent)
+	assert.True(t, ok, "result should contain one text content item")
+
+	var listed []bexioTimesheet
+	err = json.Unmarshal([]byte(textContent.Text), &listed)
+	assert.NoError(t, err)
+	assert.True(t, len(listed) >= 2, "result should contain at least two timesheet entries")
+
+	first := listed[0]
+	assert.Equal(t, 801, first.ID)
+	assert.Equal(t, "list-entry-1", first.Text)
+	assert.Equal(t, "2026-02-01 09:00:00", first.Tracking.Start)
+	assert.Equal(t, "2026-02-01 10:00:00", first.Tracking.End)
+	assert.Equal(t, 2, first.StatusID)
+	assert.Equal(t, "2026-02-01", first.Date)
+	assert.Equal(t, "01:00", first.Duration)
+	assert.False(t, first.Running)
 }
 
 func TestSearchTimesheetsAcceptance(t *testing.T) {
@@ -316,6 +328,33 @@ func TestListProjectsAcceptance(t *testing.T) {
 		Path:          "/2.0/pr_project/search",
 		Authorization: "Bearer test-token",
 		SearchBody:    searchFields,
+	}, env.fakeAPI.Received())
+
+	contentJSON, err := json.Marshal(result.Content)
+	assert.NoError(t, err)
+	assert.False(t, result.IsError)
+	assert.True(
+		t,
+		strings.Contains(string(contentJSON), "Project Alpha"),
+		"result should contain project entries",
+	)
+}
+
+func TestListProjectsWithoutContactIDAcceptance(t *testing.T) {
+	// Slice: Fix Smoke Test Findings
+	// Given list_projects is called without contact_id, when the request reaches Bexio, then it uses GET /2.0/pr_project instead of POST search.
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name:      "list_projects",
+		Arguments: map[string]any{},
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/2.0/pr_project",
+		Authorization: "Bearer test-token",
 	}, env.fakeAPI.Received())
 
 	contentJSON, err := json.Marshal(result.Content)
@@ -501,8 +540,8 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 					Tracking: trackingRange{
 						Type:  "range",
 						Date:  "2026-02-01",
-						Start: "09:00",
-						End:   "10:00",
+						Start: "2026-02-01 09:00:00",
+						End:   "2026-02-01 10:00:00",
 					},
 				},
 				{
@@ -514,8 +553,8 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 					Tracking: trackingRange{
 						Type:  "range",
 						Date:  "2026-02-02",
-						Start: "10:00",
-						End:   "11:00",
+						Start: "2026-02-02 10:00:00",
+						End:   "2026-02-02 11:00:00",
 					},
 				},
 			}
@@ -534,8 +573,8 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 					Tracking: trackingRange{
 						Type:  "range",
 						Date:  "2026-02-10",
-						Start: "08:00",
-						End:   "09:00",
+						Start: "2026-02-10 08:00:00",
+						End:   "2026-02-10 09:00:00",
 					},
 				},
 			}
@@ -552,6 +591,13 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 		http.MethodPost + " /2.0/pr_project/search": func(w http.ResponseWriter, r *http.Request) {
 			reqBody := decodeRequestJSON[[]bexioSearchField](t, r)
 			api.captureWithSearch(r, reqBody)
+			projects := []map[string]any{
+				{"id": 501, "name": "Project Alpha", "contact_id": 11},
+			}
+			writeJSONResponse(t, w, http.StatusOK, projects)
+		},
+		http.MethodGet + " /2.0/pr_project": func(w http.ResponseWriter, r *http.Request) {
+			api.capture(r)
 			projects := []map[string]any{
 				{"id": 501, "name": "Project Alpha", "contact_id": 11},
 			}

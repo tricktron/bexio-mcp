@@ -142,7 +142,7 @@ func TestBexioClientEditTimesheet(t *testing.T) {
 func TestBexioClientListTimesheets(t *testing.T) {
 	t.Parallel()
 
-	expected := []bexioTimesheet{
+	response := []bexioTimesheet{
 		{
 			ID:              801,
 			UserID:          1,
@@ -152,8 +152,8 @@ func TestBexioClientListTimesheets(t *testing.T) {
 			Tracking: trackingRange{
 				Type:  "range",
 				Date:  "2026-02-01",
-				Start: "09:00",
-				End:   "10:00",
+				Start: "2026-02-01 09:00:00",
+				End:   "2026-02-01 10:00:00",
 			},
 		},
 		{
@@ -165,14 +165,43 @@ func TestBexioClientListTimesheets(t *testing.T) {
 			Tracking: trackingRange{
 				Type:  "range",
 				Date:  "2026-02-02",
-				Start: "10:00",
-				End:   "11:00",
+				Start: "2026-02-02 10:00:00",
+				End:   "2026-02-02 11:00:00",
+			},
+		},
+	}
+
+	expected := []bexioTimesheet{
+		{
+			ID:              801,
+			UserID:          1,
+			AllowableBill:   true,
+			ClientServiceID: 11,
+			Text:            "list-entry-1",
+			Tracking: trackingRange{
+				Type:  "range",
+				Date:  "2026-02-01",
+				Start: "2026-02-01 09:00:00",
+				End:   "2026-02-01 10:00:00",
+			},
+		},
+		{
+			ID:              802,
+			UserID:          2,
+			AllowableBill:   false,
+			ClientServiceID: 12,
+			Text:            "list-entry-2",
+			Tracking: trackingRange{
+				Type:  "range",
+				Date:  "2026-02-02",
+				Start: "2026-02-02 10:00:00",
+				End:   "2026-02-02 11:00:00",
 			},
 		},
 	}
 
 	received := fakeBexioCapturedRequest{}
-	server := newListTimesheetsServer(t, &received, expected)
+	server := newListTimesheetsServer(t, &received, response)
 
 	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
 
@@ -203,8 +232,8 @@ func TestBexioClientSearchTimesheets(t *testing.T) {
 			Tracking: trackingRange{
 				Type:  "range",
 				Date:  "2026-02-10",
-				Start: "08:00",
-				End:   "09:00",
+				Start: "2026-02-10 08:00:00",
+				End:   "2026-02-10 09:00:00",
 			},
 		},
 	}
