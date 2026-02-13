@@ -75,27 +75,19 @@ func (c BexioClient) SearchTimesheets(ctx context.Context, fields []bexioSearchF
 }
 
 func (c BexioClient) ListContacts(ctx context.Context) (json.RawMessage, error) {
-	httpReq, err := c.newRequest(ctx, http.MethodGet, contactEndpoint, nil)
-	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
-	}
-
-	body, err := c.doRequest(httpReq)
-	if err != nil {
-		return nil, err
-	}
-	defer body.Close()
-
-	rawContacts, err := io.ReadAll(body)
-	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
-	}
-
-	return json.RawMessage(rawContacts), nil
+	return c.getRaw(ctx, contactEndpoint)
 }
 
 func (c BexioClient) ListClientServices(ctx context.Context) (json.RawMessage, error) {
-	httpReq, err := c.newRequest(ctx, http.MethodGet, clientServiceEndpoint, nil)
+	return c.getRaw(ctx, clientServiceEndpoint)
+}
+
+func (c BexioClient) ListPackages(ctx context.Context, projectID int) (json.RawMessage, error) {
+	return c.getRaw(ctx, fmt.Sprintf("/3.0/projects/%d/packages", projectID))
+}
+
+func (c BexioClient) getRaw(ctx context.Context, endpoint string) (json.RawMessage, error) {
+	httpReq, err := c.newRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
@@ -106,12 +98,12 @@ func (c BexioClient) ListClientServices(ctx context.Context) (json.RawMessage, e
 	}
 	defer body.Close()
 
-	rawClientServices, err := io.ReadAll(body)
+	raw, err := io.ReadAll(body)
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}
 
-	return json.RawMessage(rawClientServices), nil
+	return json.RawMessage(raw), nil
 }
 
 func (c BexioClient) newJSONRequest(ctx context.Context, method, path string, payload any) (*http.Request, error) {
