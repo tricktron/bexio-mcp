@@ -21,6 +21,13 @@ func main() {
 
 func newMCPServer(bexio BexioClient) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "bexio-mcp", Version: "0.0.0"}, nil)
+	registerTimesheetTools(server, bexio)
+	registerLookupTools(server, bexio)
+
+	return server
+}
+
+func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 	registerTool(
 		server,
 		"create_timesheet",
@@ -86,6 +93,9 @@ func newMCPServer(bexio BexioClient) *mcp.Server {
 			return entries, nil
 		},
 	)
+}
+
+func registerLookupTools(server *mcp.Server, bexio BexioClient) {
 	registerTool(
 		server,
 		"list_contacts",
@@ -138,8 +148,32 @@ func newMCPServer(bexio BexioClient) *mcp.Server {
 			return packages, nil
 		},
 	)
+	registerTool(
+		server,
+		"list_timesheet_statuses",
+		"List timesheet statuses in Bexio",
+		func(ctx context.Context, _ struct{}) (any, error) {
+			statuses, err := bexio.ListTimesheetStatuses(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("list timesheet statuses: %w", err)
+			}
 
-	return server
+			return statuses, nil
+		},
+	)
+	registerTool(
+		server,
+		"get_current_user",
+		"Get current authenticated user in Bexio",
+		func(ctx context.Context, _ struct{}) (any, error) {
+			currentUser, err := bexio.GetCurrentUser(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("get current user: %w", err)
+			}
+
+			return currentUser, nil
+		},
+	)
 }
 
 func registerTool[TInput any](

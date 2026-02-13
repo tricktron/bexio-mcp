@@ -11,11 +11,13 @@ import (
 )
 
 const (
-	timesheetEndpoint     = "/2.0/timesheet"
-	projectEndpoint       = "/2.0/pr_project"
-	contactEndpoint       = "/2.0/contact"
-	clientServiceEndpoint = "/2.0/client_service"
-	searchEndpointSuffix  = "/search"
+	timesheetEndpoint       = "/2.0/timesheet"
+	projectEndpoint         = "/2.0/pr_project"
+	contactEndpoint         = "/2.0/contact"
+	clientServiceEndpoint   = "/2.0/client_service"
+	timesheetStatusEndpoint = "/2.0/timesheet_status"
+	currentUserEndpoint     = "/3.0/users/me"
+	searchEndpointSuffix    = "/search"
 )
 
 type BexioClient struct {
@@ -108,6 +110,14 @@ func (c BexioClient) ListContacts(ctx context.Context) (json.RawMessage, error) 
 
 func (c BexioClient) ListClientServices(ctx context.Context) (json.RawMessage, error) {
 	return c.getRaw(ctx, clientServiceEndpoint)
+}
+
+func (c BexioClient) ListTimesheetStatuses(ctx context.Context) (json.RawMessage, error) {
+	return c.getRaw(ctx, timesheetStatusEndpoint)
+}
+
+func (c BexioClient) GetCurrentUser(ctx context.Context) (json.RawMessage, error) {
+	return c.getRaw(ctx, currentUserEndpoint)
 }
 
 func (c BexioClient) ListPackages(ctx context.Context, projectID int) (json.RawMessage, error) {

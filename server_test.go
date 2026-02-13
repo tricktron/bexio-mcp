@@ -338,6 +338,58 @@ func TestListPackagesAcceptance(t *testing.T) {
 	)
 }
 
+func TestListTimesheetStatusesAcceptance(t *testing.T) {
+	// Slice: Timesheet Status & Current User
+	// Given a running MCP server, when the client calls list_timesheet_statuses, then the tool returns available statuses with id and name.
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "list_timesheet_statuses",
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/2.0/timesheet_status",
+		Authorization: "Bearer test-token",
+	}, env.fakeAPI.Received())
+
+	contentJSON, err := json.Marshal(result.Content)
+	assert.NoError(t, err)
+	assert.False(t, result.IsError)
+	assert.True(
+		t,
+		strings.Contains(string(contentJSON), "Erledigt"),
+		"result should contain timesheet status entries",
+	)
+}
+
+func TestGetCurrentUserAcceptance(t *testing.T) {
+	// Slice: Timesheet Status & Current User
+	// Given a running MCP server, when the client calls get_current_user, then the tool returns the authenticated user's id and name.
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "get_current_user",
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/3.0/users/me",
+		Authorization: "Bearer test-token",
+	}, env.fakeAPI.Received())
+
+	contentJSON, err := json.Marshal(result.Content)
+	assert.NoError(t, err)
+	assert.False(t, result.IsError)
+	assert.True(
+		t,
+		strings.Contains(string(contentJSON), "Rudolph"),
+		"result should contain current user entry",
+	)
+}
+
 type fakeBexioAPI struct {
 	URL    string
 	server *httptest.Server
@@ -475,6 +527,24 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 				{"id": 62, "name": "QA Run"},
 			}
 			writeJSONResponse(t, w, http.StatusOK, packages)
+		},
+		http.MethodGet + " /2.0/timesheet_status": func(w http.ResponseWriter, r *http.Request) {
+			api.capture(r)
+			statuses := []map[string]any{
+				{"id": 1, "name": "Offen"},
+				{"id": 2, "name": "Erledigt"},
+			}
+			writeJSONResponse(t, w, http.StatusOK, statuses)
+		},
+		http.MethodGet + " /3.0/users/me": func(w http.ResponseWriter, r *http.Request) {
+			api.capture(r)
+			user := map[string]any{
+				"id":        4,
+				"firstname": "Rudolph",
+				"lastname":  "Smith",
+				"email":     "rudolph.smith@example.com",
+			}
+			writeJSONResponse(t, w, http.StatusOK, user)
 		},
 	}
 
