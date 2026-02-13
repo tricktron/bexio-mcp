@@ -47,6 +47,15 @@ func (c BexioClient) CreateTimesheet(ctx context.Context, req bexioCreateTimeshe
 	return created, nil
 }
 
+func (c BexioClient) DeleteTimesheet(ctx context.Context, id int) (json.RawMessage, error) {
+	httpReq, err := c.newRequest(ctx, http.MethodDelete, fmt.Sprintf("%s/%d", timesheetEndpoint, id), nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+
+	return c.readRawResponse(httpReq)
+}
+
 func (c BexioClient) ListTimesheets(ctx context.Context) ([]bexioTimesheet, error) {
 	httpReq, err := c.newRequest(ctx, http.MethodGet, timesheetEndpoint, nil)
 	if err != nil {

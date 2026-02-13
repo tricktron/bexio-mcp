@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -60,6 +61,33 @@ func TestCreateTimesheetAcceptance(t *testing.T) {
 
 	assert.False(t, result.IsError)
 	assert.True(t, len(result.Content) > 0, "result should have content")
+}
+
+func TestDeleteTimesheetAcceptance(t *testing.T) {
+	// Slice: Edit & Delete Timesheet
+	// Given an existing timesheet entry, when the client calls delete_timesheet with an id, then the entry is deleted from Bexio and the tool confirms deletion.
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "delete_timesheet",
+		Arguments: map[string]any{
+			"id": 777,
+		},
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodDelete,
+		Path:          "/2.0/timesheet/777",
+		Authorization: "Bearer test-token",
+	}, env.fakeAPI.Received())
+
+	assert.False(t, result.IsError)
+	assert.Equal(t, 1, len(result.Content))
+
+	textContent, ok := result.Content[0].(*mcp.TextContent)
+	assert.True(t, ok, "result should contain one text content item")
+	assert.Equal(t, `{"success":true}`, textContent.Text)
 }
 
 func TestListTimesheetsAcceptance(t *testing.T) {
@@ -397,6 +425,24 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 
 			w.Header().Set("Content-Type", "application/json")
 			if err := json.NewEncoder(w).Encode(entries); err != nil {
+				t.Fatal(err)
+			}
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/2.0/timesheet/"):
+			idText := strings.TrimPrefix(r.URL.Path, "/2.0/timesheet/")
+			if _, err := strconv.Atoi(idText); err != nil {
+				t.Fatal(err)
+			}
+
+			api.mu.Lock()
+			api.captured = fakeBexioCapturedRequest{
+				Method:        r.Method,
+				Path:          r.URL.Path,
+				Authorization: r.Header.Get("Authorization"),
+			}
+			api.mu.Unlock()
+
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
 				t.Fatal(err)
 			}
 		case r.Method == http.MethodGet && r.URL.Path == "/2.0/contact":

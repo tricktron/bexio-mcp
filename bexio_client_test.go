@@ -56,6 +56,39 @@ func TestBexioClientCreateTimesheet(t *testing.T) {
 	assert.Equal(t, created, result)
 }
 
+func TestBexioClientDeleteTimesheet(t *testing.T) {
+	t.Parallel()
+
+	const responseBody = `{"success":true}`
+
+	received := fakeBexioCapturedRequest{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		received = fakeBexioCapturedRequest{
+			Method:        r.Method,
+			Path:          r.URL.Path,
+			Authorization: r.Header.Get("Authorization"),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(responseBody))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
+
+	result, err := client.DeleteTimesheet(context.Background(), 777)
+	assert.NoError(t, err)
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodDelete,
+		Path:          "/2.0/timesheet/777",
+		Authorization: "Bearer test-token",
+	}, received)
+	assert.Equal(t, json.RawMessage(responseBody), result)
+}
+
 func TestBexioClientListTimesheets(t *testing.T) {
 	t.Parallel()
 

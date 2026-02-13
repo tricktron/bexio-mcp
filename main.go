@@ -36,6 +36,19 @@ func newMCPServer(bexio BexioClient) *mcp.Server {
 	)
 	registerTool(
 		server,
+		"delete_timesheet",
+		"Delete a timesheet entry in Bexio",
+		func(ctx context.Context, input bexioDeleteTimesheetRequest) (any, error) {
+			deleted, err := bexio.DeleteTimesheet(ctx, input.ID)
+			if err != nil {
+				return nil, fmt.Errorf("delete timesheet: %w", err)
+			}
+
+			return deleted, nil
+		},
+	)
+	registerTool(
+		server,
 		"list_timesheets",
 		"List timesheet entries in Bexio",
 		func(ctx context.Context, _ struct{}) (any, error) {
