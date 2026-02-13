@@ -5,14 +5,18 @@ As a developer, I want to edit or delete a timesheet entry so that I can fix mis
 
 ## Outer Boundary
 - Entry: MCP tools `edit_timesheet`, `delete_timesheet`
-- Test file: `mcp_test.go`
+- Test file: `server_test.go`
 - Framework: `go test`
 
 ## Shell Boundaries
-- HTTP: BexioClient — calls `POST /2.0/timesheet/{id}` (edit) and `DELETE /2.0/timesheet/{id}`
+- MCP transport shell: `main.go` wires `edit_timesheet` and `delete_timesheet` tool handlers to `BexioClient`
+- HTTP shell: `BexioClient` calls `POST /2.0/timesheet/{id}` (edit) and `DELETE /2.0/timesheet/{id}`
 
 ## Functional Core
-Discovered via TDD.
+- `bexioCreateTimesheetRequest`: shared request model for create/edit payload fields
+- `bexioEditTimesheetRequest`: MCP input envelope combining `id` and editable fields
+- `bexioDeleteTimesheetRequest`: MCP input envelope for delete by `id`
+- `bexioTimesheet`: shared response model returned by API and MCP tools
 
 ## Acceptance Criterion
 Given an existing timesheet entry  
@@ -28,3 +32,9 @@ Then the entry is deleted from bexio and the tool confirms deletion
 
 ## Uses
 - BexioClient from slice 01
+
+## Implemented
+- Added MCP tools: `edit_timesheet`, `delete_timesheet`
+- Added HTTP client methods: `EditTimesheet`, `DeleteTimesheet`
+- Added acceptance coverage: `TestEditTimesheetAcceptance`, `TestDeleteTimesheetAcceptance`
+- Added unit coverage: `TestBexioClientEditTimesheet`, `TestBexioClientDeleteTimesheet`

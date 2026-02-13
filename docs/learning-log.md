@@ -139,3 +139,36 @@ None.
 - Extracted generic `registerTool[TInput]` to reduce MCP tool registration boilerplate
 - Moved lookup input DTOs to `lookup.go`
 - Removed empty `contact.go` placeholder
+
+---
+
+## 2026-02-13: Edit & Delete Timesheet
+
+### Acceptance Test
+- Entry: MCP tools `edit_timesheet` and `delete_timesheet`
+- Verified: Tool calls map to `POST /2.0/timesheet/{id}` and `DELETE /2.0/timesheet/{id}` and return updated/deletion responses
+
+### Architecture
+```mermaid
+graph TD
+    MCPServer[newMCPServer] --> BexioClient
+    BexioClient --> TimesheetCore[Timesheet Models]
+```
+
+### Functional Core
+- bexioEditTimesheetRequest: MCP envelope combining `id` with editable timesheet fields
+- bexioDeleteTimesheetRequest: MCP envelope for delete-by-id input
+
+### Unit Tests (2)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| BexioClient | 2 | POST edit payload to `/2.0/timesheet/{id}`, DELETE `/2.0/timesheet/{id}` and return raw success body |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A

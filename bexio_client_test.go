@@ -62,20 +62,7 @@ func TestBexioClientDeleteTimesheet(t *testing.T) {
 	const responseBody = `{"success":true}`
 
 	received := fakeBexioCapturedRequest{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-
-		received = fakeBexioCapturedRequest{
-			Method:        r.Method,
-			Path:          r.URL.Path,
-			Authorization: r.Header.Get("Authorization"),
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(responseBody))
-		assert.NoError(t, err)
-	}))
-	t.Cleanup(server.Close)
+	server := newRawResponseServer(t, &received, responseBody, nil)
 
 	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
 
@@ -244,20 +231,7 @@ func TestBexioClientListContacts(t *testing.T) {
 	const responseBody = `[{"id":1,"name_1":"Acme Corp","name_2":""}]`
 
 	received := fakeBexioCapturedRequest{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-
-		received = fakeBexioCapturedRequest{
-			Method:        r.Method,
-			Path:          r.URL.Path,
-			Authorization: r.Header.Get("Authorization"),
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(responseBody))
-		assert.NoError(t, err)
-	}))
-	t.Cleanup(server.Close)
+	server := newRawResponseServer(t, &received, responseBody, nil)
 
 	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
 
@@ -280,25 +254,17 @@ func TestBexioClientSearchProjects(t *testing.T) {
 	expectedSearchBody := []bexioSearchField{{Field: "contact_id", Value: "11", Criteria: "="}}
 
 	received := fakeBexioCapturedRequest{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-
-		var body []bexioSearchField
-		err := json.NewDecoder(r.Body).Decode(&body)
-		assert.NoError(t, err)
-
-		received = fakeBexioCapturedRequest{
-			Method:        r.Method,
-			Path:          r.URL.Path,
-			Authorization: r.Header.Get("Authorization"),
-			SearchBody:    body,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		_, err = w.Write([]byte(responseBody))
-		assert.NoError(t, err)
-	}))
-	t.Cleanup(server.Close)
+	server := newRawResponseServer(
+		t,
+		&received,
+		responseBody,
+		func(t *testing.T, r *http.Request, captured *fakeBexioCapturedRequest) {
+			var body []bexioSearchField
+			err := json.NewDecoder(r.Body).Decode(&body)
+			assert.NoError(t, err)
+			captured.SearchBody = body
+		},
+	)
 
 	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
 
@@ -319,20 +285,7 @@ func TestBexioClientListClientServices(t *testing.T) {
 	const responseBody = `[{"id":77,"name":"Engineering"},{"id":78,"name":"Consulting"}]`
 
 	received := fakeBexioCapturedRequest{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-
-		received = fakeBexioCapturedRequest{
-			Method:        r.Method,
-			Path:          r.URL.Path,
-			Authorization: r.Header.Get("Authorization"),
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(responseBody))
-		assert.NoError(t, err)
-	}))
-	t.Cleanup(server.Close)
+	server := newRawResponseServer(t, &received, responseBody, nil)
 
 	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
 
@@ -352,20 +305,7 @@ func TestBexioClientListPackages(t *testing.T) {
 	const responseBody = `[{"id":61,"name":"Backend Sprint"},{"id":62,"name":"QA Run"}]`
 
 	received := fakeBexioCapturedRequest{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-
-		received = fakeBexioCapturedRequest{
-			Method:        r.Method,
-			Path:          r.URL.Path,
-			Authorization: r.Header.Get("Authorization"),
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(responseBody))
-		assert.NoError(t, err)
-	}))
-	t.Cleanup(server.Close)
+	server := newRawResponseServer(t, &received, responseBody, nil)
 
 	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
 
@@ -476,6 +416,38 @@ func newSearchTimesheetsServer(
 
 		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+	}))
+
+	t.Cleanup(server.Close)
+	return server
+}
+
+func newRawResponseServer(
+	t *testing.T,
+	received *fakeBexioCapturedRequest,
+	responseBody string,
+	readBody func(t *testing.T, r *http.Request, captured *fakeBexioCapturedRequest),
+) *httptest.Server {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		captured := fakeBexioCapturedRequest{
+			Method:        r.Method,
+			Path:          r.URL.Path,
+			Authorization: r.Header.Get("Authorization"),
+		}
+
+		if readBody != nil {
+			readBody(t, r, &captured)
+		}
+
+		*received = captured
+
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(responseBody))
 		assert.NoError(t, err)
 	}))
 

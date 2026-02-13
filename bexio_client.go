@@ -33,18 +33,7 @@ func NewBexioClient(baseURL, token string, httpClient *http.Client) BexioClient 
 }
 
 func (c BexioClient) CreateTimesheet(ctx context.Context, req bexioCreateTimesheetRequest) (bexioTimesheet, error) {
-	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, timesheetEndpoint, req)
-	if err != nil {
-		return bexioTimesheet{}, err
-	}
-
-	var created bexioTimesheet
-	err = c.doAndDecode(httpReq, &created)
-	if err != nil {
-		return bexioTimesheet{}, err
-	}
-
-	return created, nil
+	return c.postTimesheet(ctx, timesheetEndpoint, req)
 }
 
 func (c BexioClient) EditTimesheet(
@@ -52,18 +41,26 @@ func (c BexioClient) EditTimesheet(
 	id int,
 	req bexioCreateTimesheetRequest,
 ) (bexioTimesheet, error) {
-	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, fmt.Sprintf("%s/%d", timesheetEndpoint, id), req)
+	return c.postTimesheet(ctx, fmt.Sprintf("%s/%d", timesheetEndpoint, id), req)
+}
+
+func (c BexioClient) postTimesheet(
+	ctx context.Context,
+	endpoint string,
+	req bexioCreateTimesheetRequest,
+) (bexioTimesheet, error) {
+	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, endpoint, req)
 	if err != nil {
 		return bexioTimesheet{}, err
 	}
 
-	var edited bexioTimesheet
-	err = c.doAndDecode(httpReq, &edited)
+	var timesheet bexioTimesheet
+	err = c.doAndDecode(httpReq, &timesheet)
 	if err != nil {
 		return bexioTimesheet{}, err
 	}
 
-	return edited, nil
+	return timesheet, nil
 }
 
 func (c BexioClient) DeleteTimesheet(ctx context.Context, id int) (json.RawMessage, error) {

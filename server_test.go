@@ -386,50 +386,14 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 	t.Helper()
 
 	api := &fakeBexioAPI{}
-	api.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-
-		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/2.0/timesheet":
-			var reqBody bexioCreateTimesheetRequest
-			if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-				t.Fatal(err)
-			}
-
-			api.mu.Lock()
-			api.captured = fakeBexioCapturedRequest{
-				Method:        r.Method,
-				Path:          r.URL.Path,
-				Authorization: r.Header.Get("Authorization"),
-				Body:          reqBody,
-			}
-			api.mu.Unlock()
-
-			created := bexioTimesheet{
-				ID:              777,
-				UserID:          reqBody.UserID,
-				AllowableBill:   reqBody.AllowableBill,
-				ClientServiceID: reqBody.ClientServiceID,
-				Text:            reqBody.Text,
-				ContactID:       reqBody.ContactID,
-				PrProjectID:     reqBody.PrProjectID,
-				Tracking:        reqBody.Tracking,
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusCreated)
-			if err := json.NewEncoder(w).Encode(created); err != nil {
-				t.Fatal(err)
-			}
-		case r.Method == http.MethodGet && r.URL.Path == "/2.0/timesheet":
-			api.mu.Lock()
-			api.captured = fakeBexioCapturedRequest{
-				Method:        r.Method,
-				Path:          r.URL.Path,
-				Authorization: r.Header.Get("Authorization"),
-			}
-			api.mu.Unlock()
-
+	exactHandlers := map[string]http.HandlerFunc{
+		http.MethodPost + " /2.0/timesheet": func(w http.ResponseWriter, r *http.Request) {
+			reqBody := decodeRequestJSON[bexioCreateTimesheetRequest](t, r)
+			api.captureWithTimesheet(r, reqBody)
+			writeJSONResponse(t, w, http.StatusCreated, buildTimesheet(777, reqBody))
+		},
+		http.MethodGet + " /2.0/timesheet": func(w http.ResponseWriter, r *http.Request) {
+			api.capture(r)
 			entries := []bexioTimesheet{
 				{
 					ID:              801,
@@ -458,26 +422,11 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 					},
 				},
 			}
-
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(entries); err != nil {
-				t.Fatal(err)
-			}
-		case r.Method == http.MethodPost && r.URL.Path == "/2.0/timesheet/search":
-			var reqBody []bexioSearchField
-			if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-				t.Fatal(err)
-			}
-
-			api.mu.Lock()
-			api.captured = fakeBexioCapturedRequest{
-				Method:        r.Method,
-				Path:          r.URL.Path,
-				Authorization: r.Header.Get("Authorization"),
-				SearchBody:    reqBody,
-			}
-			api.mu.Unlock()
-
+			writeJSONResponse(t, w, http.StatusOK, entries)
+		},
+		http.MethodPost + " /2.0/timesheet/search": func(w http.ResponseWriter, r *http.Request) {
+			reqBody := decodeRequestJSON[[]bexioSearchField](t, r)
+			api.captureWithSearch(r, reqBody)
 			entries := []bexioTimesheet{
 				{
 					ID:              901,
@@ -493,150 +442,172 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 					},
 				},
 			}
-
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(entries); err != nil {
-				t.Fatal(err)
-			}
-		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/2.0/timesheet/") && r.URL.Path != "/2.0/timesheet/search":
-			idText := strings.TrimPrefix(r.URL.Path, "/2.0/timesheet/")
-			id, err := strconv.Atoi(idText)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			var reqBody bexioCreateTimesheetRequest
-			if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-				t.Fatal(err)
-			}
-
-			api.mu.Lock()
-			api.captured = fakeBexioCapturedRequest{
-				Method:        r.Method,
-				Path:          r.URL.Path,
-				Authorization: r.Header.Get("Authorization"),
-				Body:          reqBody,
-			}
-			api.mu.Unlock()
-
-			updated := bexioTimesheet{
-				ID:              id,
-				UserID:          reqBody.UserID,
-				AllowableBill:   reqBody.AllowableBill,
-				ClientServiceID: reqBody.ClientServiceID,
-				Text:            reqBody.Text,
-				ContactID:       reqBody.ContactID,
-				PrProjectID:     reqBody.PrProjectID,
-				Tracking:        reqBody.Tracking,
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(updated); err != nil {
-				t.Fatal(err)
-			}
-		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/2.0/timesheet/"):
-			idText := strings.TrimPrefix(r.URL.Path, "/2.0/timesheet/")
-			if _, err := strconv.Atoi(idText); err != nil {
-				t.Fatal(err)
-			}
-
-			api.mu.Lock()
-			api.captured = fakeBexioCapturedRequest{
-				Method:        r.Method,
-				Path:          r.URL.Path,
-				Authorization: r.Header.Get("Authorization"),
-			}
-			api.mu.Unlock()
-
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
-				t.Fatal(err)
-			}
-		case r.Method == http.MethodGet && r.URL.Path == "/2.0/contact":
-			api.mu.Lock()
-			api.captured = fakeBexioCapturedRequest{
-				Method:        r.Method,
-				Path:          r.URL.Path,
-				Authorization: r.Header.Get("Authorization"),
-			}
-			api.mu.Unlock()
-
+			writeJSONResponse(t, w, http.StatusOK, entries)
+		},
+		http.MethodGet + " /2.0/contact": func(w http.ResponseWriter, r *http.Request) {
+			api.capture(r)
 			contacts := []map[string]any{
 				{"id": 11, "name_1": "Acme Corp", "name_2": ""},
 				{"id": 12, "name_1": "Globex Inc", "name_2": ""},
 			}
-
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(contacts); err != nil {
-				t.Fatal(err)
-			}
-		case r.Method == http.MethodPost && r.URL.Path == "/2.0/pr_project/search":
-			var reqBody []bexioSearchField
-			if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-				t.Fatal(err)
-			}
-
-			api.mu.Lock()
-			api.captured = fakeBexioCapturedRequest{
-				Method:        r.Method,
-				Path:          r.URL.Path,
-				Authorization: r.Header.Get("Authorization"),
-				SearchBody:    reqBody,
-			}
-			api.mu.Unlock()
-
+			writeJSONResponse(t, w, http.StatusOK, contacts)
+		},
+		http.MethodPost + " /2.0/pr_project/search": func(w http.ResponseWriter, r *http.Request) {
+			reqBody := decodeRequestJSON[[]bexioSearchField](t, r)
+			api.captureWithSearch(r, reqBody)
 			projects := []map[string]any{
 				{"id": 501, "name": "Project Alpha", "contact_id": 11},
 			}
-
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(projects); err != nil {
-				t.Fatal(err)
-			}
-		case r.Method == http.MethodGet && r.URL.Path == "/2.0/client_service":
-			api.mu.Lock()
-			api.captured = fakeBexioCapturedRequest{
-				Method:        r.Method,
-				Path:          r.URL.Path,
-				Authorization: r.Header.Get("Authorization"),
-			}
-			api.mu.Unlock()
-
+			writeJSONResponse(t, w, http.StatusOK, projects)
+		},
+		http.MethodGet + " /2.0/client_service": func(w http.ResponseWriter, r *http.Request) {
+			api.capture(r)
 			services := []map[string]any{
 				{"id": 77, "name": "Engineering"},
 				{"id": 78, "name": "Consulting"},
 			}
-
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(services); err != nil {
-				t.Fatal(err)
-			}
-		case r.Method == http.MethodGet && r.URL.Path == "/3.0/projects/5/packages":
-			api.mu.Lock()
-			api.captured = fakeBexioCapturedRequest{
-				Method:        r.Method,
-				Path:          r.URL.Path,
-				Authorization: r.Header.Get("Authorization"),
-			}
-			api.mu.Unlock()
-
+			writeJSONResponse(t, w, http.StatusOK, services)
+		},
+		http.MethodGet + " /3.0/projects/5/packages": func(w http.ResponseWriter, r *http.Request) {
+			api.capture(r)
 			packages := []map[string]any{
 				{"id": 61, "name": "Backend Sprint"},
 				{"id": 62, "name": "QA Run"},
 			}
+			writeJSONResponse(t, w, http.StatusOK, packages)
+		},
+	}
 
-			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(packages); err != nil {
-				t.Fatal(err)
-			}
-		default:
-			w.WriteHeader(http.StatusNotFound)
+	api.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		if handled := handleTimesheetByIDRoutes(t, api, w, r); handled {
+			return
 		}
+
+		handler, ok := exactHandlers[r.Method+" "+r.URL.Path]
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		handler(w, r)
 	}))
 	api.URL = api.server.URL
 	t.Cleanup(api.server.Close)
 
 	return api
+}
+
+func (f *fakeBexioAPI) capture(r *http.Request) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.captured = fakeBexioCapturedRequest{
+		Method:        r.Method,
+		Path:          r.URL.Path,
+		Authorization: r.Header.Get("Authorization"),
+	}
+}
+
+func (f *fakeBexioAPI) captureWithTimesheet(r *http.Request, body bexioCreateTimesheetRequest) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.captured = fakeBexioCapturedRequest{
+		Method:        r.Method,
+		Path:          r.URL.Path,
+		Authorization: r.Header.Get("Authorization"),
+		Body:          body,
+	}
+}
+
+func (f *fakeBexioAPI) captureWithSearch(r *http.Request, searchBody []bexioSearchField) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.captured = fakeBexioCapturedRequest{
+		Method:        r.Method,
+		Path:          r.URL.Path,
+		Authorization: r.Header.Get("Authorization"),
+		SearchBody:    searchBody,
+	}
+}
+
+func handleTimesheetByIDRoutes(t *testing.T, api *fakeBexioAPI, w http.ResponseWriter, r *http.Request) bool {
+	t.Helper()
+
+	if !strings.HasPrefix(r.URL.Path, "/2.0/timesheet/") || r.URL.Path == "/2.0/timesheet/search" {
+		return false
+	}
+
+	id, ok := parseTimesheetID(r.URL.Path)
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return true
+	}
+
+	switch r.Method {
+	case http.MethodPost:
+		reqBody := decodeRequestJSON[bexioCreateTimesheetRequest](t, r)
+		api.captureWithTimesheet(r, reqBody)
+		writeJSONResponse(t, w, http.StatusOK, buildTimesheet(id, reqBody))
+		return true
+	case http.MethodDelete:
+		api.capture(r)
+		writeJSONResponse(t, w, http.StatusOK, map[string]bool{"success": true})
+		return true
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return true
+	}
+}
+
+func parseTimesheetID(path string) (int, bool) {
+	idText := strings.TrimPrefix(path, "/2.0/timesheet/")
+	if idText == "" || strings.Contains(idText, "/") {
+		return 0, false
+	}
+
+	id, err := strconv.Atoi(idText)
+	if err != nil {
+		return 0, false
+	}
+
+	return id, true
+}
+
+func buildTimesheet(id int, reqBody bexioCreateTimesheetRequest) bexioTimesheet {
+	return bexioTimesheet{
+		ID:              id,
+		UserID:          reqBody.UserID,
+		AllowableBill:   reqBody.AllowableBill,
+		ClientServiceID: reqBody.ClientServiceID,
+		Text:            reqBody.Text,
+		ContactID:       reqBody.ContactID,
+		PrProjectID:     reqBody.PrProjectID,
+		Tracking:        reqBody.Tracking,
+	}
+}
+
+func writeJSONResponse(t *testing.T, w http.ResponseWriter, status int, payload any) {
+	t.Helper()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
+		t.Fatalf("encode fake response: %v", err)
+	}
+}
+
+func decodeRequestJSON[T any](t *testing.T, r *http.Request) T {
+	t.Helper()
+
+	var payload T
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode fake request: %v", err)
+	}
+
+	return payload
 }
 
 func (f *fakeBexioAPI) Received() fakeBexioCapturedRequest {
