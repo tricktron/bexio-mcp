@@ -94,3 +94,48 @@ None
 
 ### Recall Answers
 N/A
+
+## Slice 03: Lookup Tools (Contacts, Projects, Packages, Services)
+
+### Acceptance Tests
+| Test | Verifies |
+| ---- | -------- |
+| TestListContactsAcceptance | list_contacts → GET /2.0/contact → returns contacts |
+| TestListProjectsAcceptance | list_projects with contact_id → POST /2.0/pr_project/search → returns projects |
+| TestListPackagesAcceptance | list_packages with project_id → GET /3.0/projects/{id}/packages → returns packages |
+| TestListClientServicesAcceptance | list_client_services → GET /2.0/client_service → returns services |
+
+### Architecture
+```mermaid
+graph LR
+    MCP[MCP Tools] --> BC[BexioClient]
+    BC --> |getRaw| GET[GET endpoints]
+    BC --> |postRaw| POST[POST /search]
+    GET --> contacts[/2.0/contact]
+    GET --> services[/2.0/client_service]
+    GET --> packages[/3.0/projects/id/packages]
+    POST --> projects[/2.0/pr_project/search]
+```
+
+### Core Classes Discovered
+None — all lookup tools are thin shells passing raw JSON through.
+
+### Unit Tests
+| Test | Component | Behavior |
+| ---- | --------- | -------- |
+| TestBexioClientListContacts | BexioClient | GET /2.0/contact with auth, returns raw JSON |
+| TestBexioClientListClientServices | BexioClient | GET /2.0/client_service with auth, returns raw JSON |
+| TestBexioClientListPackages | BexioClient | GET /3.0/projects/5/packages with auth, returns raw JSON |
+| TestBexioClientSearchProjects | BexioClient | POST /2.0/pr_project/search with contact_id filter |
+
+### Discoveries
+None.
+
+### Iterations
+4 (one per tool)
+
+### Refactoring Highlights
+- Extracted `getRaw`/`postRaw`/`readRawResponse` helpers to eliminate duplication
+- Extracted generic `registerTool[TInput]` to reduce MCP tool registration boilerplate
+- Moved lookup input DTOs to `lookup.go`
+- Removed empty `contact.go` placeholder

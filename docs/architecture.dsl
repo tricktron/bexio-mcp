@@ -4,12 +4,12 @@ workspace {
 
         mcpClient = softwareSystem "MCP Client" "Claude Desktop, VS Code, etc." "Existing System"
 
-        bexioMcp = softwareSystem "bexio-mcp" "MCP server exposing bexio timesheet operations as tools" {
-            mcpServer = container "MCP Server" "Handles MCP protocol, tool registration, stdio transport" "Go (go-sdk/mcp)"
-            bexioClient = container "Bexio API Client" "HTTP client for bexio REST API v2.0" "Go (net/http)"
+        bexioMcp = softwareSystem "bexio-mcp" "MCP server exposing bexio timesheet and lookup operations as tools" {
+            mcpServer = container "MCP Server" "Handles MCP protocol, tool registration, and handlers for timesheet tools (create/list/search) and lookup tools (list_contacts, list_projects, list_packages, list_client_services)" "Go (go-sdk/mcp)"
+            bexioClient = container "Bexio API Client" "HTTP client wrapping bexio REST API: timesheets (v4.0), contacts (v2.0), projects (v2.0), packages (v3.0), client_services (v2.0)" "Go (net/http)"
         }
 
-        bexioApi = softwareSystem "Bexio API" "api.bexio.com — REST API for timesheets, contacts, projects" "Existing System"
+        bexioApi = softwareSystem "Bexio API" "api.bexio.com — REST API v2.0/v3.0/v4.0 for timesheets, contacts, projects, packages, client_services" "Existing System"
 
         developer -> mcpClient "Logs time via natural language"
         mcpClient -> mcpServer "MCP protocol over stdio" "JSON-RPC"
