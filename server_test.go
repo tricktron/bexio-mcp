@@ -192,8 +192,12 @@ func TestEditTimesheetAcceptance(t *testing.T) {
 	assert.Equal(t, bexioTimesheet{
 		ID:              777,
 		UserID:          42,
+		StatusID:        0,
 		AllowableBill:   true,
 		ClientServiceID: 99,
+		Date:            "2026-02-08",
+		Duration:        "01:30",
+		Running:         false,
 		ContactID:       intPtr(11),
 		PrProjectID:     intPtr(12),
 		Text:            "Updated acceptance test",
@@ -530,55 +534,12 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 		},
 		http.MethodGet + " /2.0/timesheet": func(w http.ResponseWriter, r *http.Request) {
 			api.capture(r)
-			entries := []bexioTimesheet{
-				{
-					ID:              801,
-					UserID:          1,
-					AllowableBill:   true,
-					ClientServiceID: 11,
-					Text:            "list-entry-1",
-					Tracking: trackingRange{
-						Type:  "range",
-						Date:  "2026-02-01",
-						Start: "2026-02-01 09:00:00",
-						End:   "2026-02-01 10:00:00",
-					},
-				},
-				{
-					ID:              802,
-					UserID:          2,
-					AllowableBill:   false,
-					ClientServiceID: 12,
-					Text:            "list-entry-2",
-					Tracking: trackingRange{
-						Type:  "range",
-						Date:  "2026-02-02",
-						Start: "2026-02-02 10:00:00",
-						End:   "2026-02-02 11:00:00",
-					},
-				},
-			}
-			writeJSONResponse(t, w, http.StatusOK, entries)
+			writeJSONResponse(t, w, http.StatusOK, listTimesheetEntriesFixture())
 		},
 		http.MethodPost + " /2.0/timesheet/search": func(w http.ResponseWriter, r *http.Request) {
 			reqBody := decodeRequestJSON[[]bexioSearchField](t, r)
 			api.captureWithSearch(r, reqBody)
-			entries := []bexioTimesheet{
-				{
-					ID:              901,
-					UserID:          42,
-					AllowableBill:   true,
-					ClientServiceID: 77,
-					Text:            "search-match-1",
-					Tracking: trackingRange{
-						Type:  "range",
-						Date:  "2026-02-10",
-						Start: "2026-02-10 08:00:00",
-						End:   "2026-02-10 09:00:00",
-					},
-				},
-			}
-			writeJSONResponse(t, w, http.StatusOK, entries)
+			writeJSONResponse(t, w, http.StatusOK, searchTimesheetEntriesFixture())
 		},
 		http.MethodGet + " /2.0/contact": func(w http.ResponseWriter, r *http.Request) {
 			api.capture(r)
@@ -741,12 +702,77 @@ func buildTimesheet(id int, reqBody bexioCreateTimesheetRequest) bexioTimesheet 
 	return bexioTimesheet{
 		ID:              id,
 		UserID:          reqBody.UserID,
+		StatusID:        reqBody.StatusID,
 		AllowableBill:   reqBody.AllowableBill,
 		ClientServiceID: reqBody.ClientServiceID,
+		Date:            reqBody.Tracking.Date,
+		Duration:        "01:30",
+		Running:         false,
 		Text:            reqBody.Text,
 		ContactID:       reqBody.ContactID,
 		PrProjectID:     reqBody.PrProjectID,
 		Tracking:        reqBody.Tracking,
+	}
+}
+
+func listTimesheetEntriesFixture() []bexioTimesheet {
+	return []bexioTimesheet{
+		{
+			ID:              801,
+			UserID:          1,
+			StatusID:        2,
+			AllowableBill:   true,
+			ClientServiceID: 11,
+			Date:            "2026-02-01",
+			Duration:        "01:00",
+			Running:         false,
+			Text:            "list-entry-1",
+			Tracking: trackingRange{
+				Type:  "range",
+				Date:  "2026-02-01",
+				Start: "2026-02-01 09:00:00",
+				End:   "2026-02-01 10:00:00",
+			},
+		},
+		{
+			ID:              802,
+			UserID:          2,
+			StatusID:        1,
+			AllowableBill:   false,
+			ClientServiceID: 12,
+			Date:            "2026-02-02",
+			Duration:        "01:00",
+			Running:         false,
+			Text:            "list-entry-2",
+			Tracking: trackingRange{
+				Type:  "range",
+				Date:  "2026-02-02",
+				Start: "2026-02-02 10:00:00",
+				End:   "2026-02-02 11:00:00",
+			},
+		},
+	}
+}
+
+func searchTimesheetEntriesFixture() []bexioTimesheet {
+	return []bexioTimesheet{
+		{
+			ID:              901,
+			UserID:          42,
+			StatusID:        2,
+			AllowableBill:   true,
+			ClientServiceID: 77,
+			Date:            "2026-02-10",
+			Duration:        "01:00",
+			Running:         false,
+			Text:            "search-match-1",
+			Tracking: trackingRange{
+				Type:  "range",
+				Date:  "2026-02-10",
+				Start: "2026-02-10 08:00:00",
+				End:   "2026-02-10 09:00:00",
+			},
+		},
 	}
 }
 
