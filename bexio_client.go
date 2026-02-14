@@ -74,6 +74,21 @@ func (c BexioClient) DeleteTimesheet(ctx context.Context, id int) (json.RawMessa
 	return c.readRawResponse(httpReq)
 }
 
+func (c BexioClient) GetTimesheet(ctx context.Context, id int) (bexioTimesheet, error) {
+	httpReq, err := c.newRequest(ctx, http.MethodGet, fmt.Sprintf("%s/%d", timesheetEndpoint, id), nil)
+	if err != nil {
+		return bexioTimesheet{}, fmt.Errorf("build request: %w", err)
+	}
+
+	var timesheet bexioTimesheet
+	err = c.doAndDecode(httpReq, &timesheet)
+	if err != nil {
+		return bexioTimesheet{}, err
+	}
+
+	return timesheet, nil
+}
+
 func (c BexioClient) ListTimesheets(ctx context.Context) ([]bexioTimesheet, error) {
 	httpReq, err := c.newRequest(ctx, http.MethodGet, timesheetEndpoint, nil)
 	if err != nil {
@@ -224,6 +239,7 @@ func (c BexioClient) newRequest(ctx context.Context, method, path string, body i
 	}
 
 	httpReq.Header.Set("Authorization", "Bearer "+c.token)
+	httpReq.Header.Set("Accept", "application/json")
 
 	return httpReq, nil
 }

@@ -198,6 +198,25 @@ func TestBexioClientListContacts(t *testing.T) {
 	assert.True(t, strings.Contains(string(result), "Acme Corp"), "result should contain contact data")
 }
 
+func TestBexioClientSendsAcceptHeader(t *testing.T) {
+	t.Parallel()
+
+	var gotAccept string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAccept = r.Header.Get("Accept")
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`[]`))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
+
+	_, err := client.ListContacts(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, "application/json", gotAccept)
+}
+
 func TestBexioClientListProjects(t *testing.T) {
 	t.Parallel()
 
