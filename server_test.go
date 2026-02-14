@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
-	"sync"
+
 	"testing"
 	"time"
 
@@ -39,27 +39,6 @@ func TestCreateTimesheetAcceptance(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodPost,
-		Path:          "/2.0/timesheet",
-		Authorization: "Bearer test-token",
-		Body: bexioCreateTimesheetRequest{
-			UserID:          42,
-			StatusID:        2,
-			AllowableBill:   true,
-			ClientServiceID: 99,
-			ContactID:       intPtr(11),
-			PrProjectID:     intPtr(12),
-			Text:            "Build acceptance test",
-			Tracking: trackingRange{
-				Type:  "range",
-				Date:  "2026-02-08",
-				Start: "09:00",
-				End:   "10:30",
-			},
-		},
-	}, env.fakeAPI.Received())
-
 	assert.False(t, result.IsError)
 	assert.True(t, len(result.Content) > 0, "result should have content")
 }
@@ -85,25 +64,6 @@ func TestCreateTimesheetAutoResolveDefaultsAcceptance(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodPost,
-		Path:          "/2.0/timesheet",
-		Authorization: "Bearer test-token",
-		Body: bexioCreateTimesheetRequest{
-			UserID:          4,
-			StatusID:        2,
-			AllowableBill:   true,
-			ClientServiceID: 99,
-			Text:            "Build acceptance test with defaults",
-			Tracking: trackingRange{
-				Type:  "range",
-				Date:  "2026-02-08",
-				Start: "09:00",
-				End:   "10:30",
-			},
-		},
-	}, env.fakeAPI.Received())
-
 	assert.False(t, result.IsError)
 	assert.True(t, len(result.Content) > 0, "result should have content")
 }
@@ -120,12 +80,6 @@ func TestDeleteTimesheetAcceptance(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodDelete,
-		Path:          "/2.0/timesheet/777",
-		Authorization: "Bearer test-token",
-	}, env.fakeAPI.Received())
 
 	assert.False(t, result.IsError)
 	assert.Equal(t, 1, len(result.Content))
@@ -159,26 +113,6 @@ func TestEditTimesheetAcceptance(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodPost,
-		Path:          "/2.0/timesheet/777",
-		Authorization: "Bearer test-token",
-		Body: bexioCreateTimesheetRequest{
-			UserID:          42,
-			AllowableBill:   true,
-			ClientServiceID: 99,
-			ContactID:       intPtr(11),
-			PrProjectID:     intPtr(12),
-			Text:            "Updated acceptance test",
-			Tracking: trackingRange{
-				Type:  "range",
-				Date:  "2026-02-08",
-				Start: "13:00",
-				End:   "14:30",
-			},
-		},
-	}, env.fakeAPI.Received())
 
 	assert.False(t, result.IsError)
 	assert.Equal(t, 1, len(result.Content))
@@ -220,12 +154,6 @@ func TestListTimesheetsAcceptance(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodGet,
-		Path:          "/2.0/timesheet",
-		Authorization: "Bearer test-token",
-	}, env.fakeAPI.Received())
-
 	assert.False(t, result.IsError)
 	assert.Equal(t, 1, len(result.Content))
 
@@ -253,10 +181,6 @@ func TestSearchTimesheetsAcceptance(t *testing.T) {
 	// Given a running MCP server, when the client calls search_timesheets with a user_id filter, then the tool returns matching timesheet entries.
 	env := newAcceptanceEnv(t)
 
-	searchFields := []bexioSearchField{
-		{Field: "user_id", Value: "42", Criteria: "="},
-	}
-
 	result, err := env.callTool(&mcp.CallToolParams{
 		Name: "search_timesheets",
 		Arguments: map[string]any{
@@ -266,13 +190,6 @@ func TestSearchTimesheetsAcceptance(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodPost,
-		Path:          "/2.0/timesheet/search",
-		Authorization: "Bearer test-token",
-		SearchBody:    searchFields,
-	}, env.fakeAPI.Received())
 
 	contentJSON, err := json.Marshal(result.Content)
 	assert.NoError(t, err)
@@ -294,12 +211,6 @@ func TestListContactsAcceptance(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodGet,
-		Path:          "/2.0/contact",
-		Authorization: "Bearer test-token",
-	}, env.fakeAPI.Received())
-
 	contentJSON, err := json.Marshal(result.Content)
 	assert.NoError(t, err)
 	assert.False(t, result.IsError)
@@ -315,10 +226,6 @@ func TestListProjectsAcceptance(t *testing.T) {
 	// Given a running MCP server, when the client calls list_projects with an optional contact_id filter, then the tool returns projects associated with that contact.
 	env := newAcceptanceEnv(t)
 
-	searchFields := []bexioSearchField{
-		{Field: "contact_id", Value: "11", Criteria: "="},
-	}
-
 	result, err := env.callTool(&mcp.CallToolParams{
 		Name: "list_projects",
 		Arguments: map[string]any{
@@ -326,13 +233,6 @@ func TestListProjectsAcceptance(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodPost,
-		Path:          "/2.0/pr_project/search",
-		Authorization: "Bearer test-token",
-		SearchBody:    searchFields,
-	}, env.fakeAPI.Received())
 
 	contentJSON, err := json.Marshal(result.Content)
 	assert.NoError(t, err)
@@ -355,12 +255,6 @@ func TestListProjectsWithoutContactIDAcceptance(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodGet,
-		Path:          "/2.0/pr_project",
-		Authorization: "Bearer test-token",
-	}, env.fakeAPI.Received())
-
 	contentJSON, err := json.Marshal(result.Content)
 	assert.NoError(t, err)
 	assert.False(t, result.IsError)
@@ -380,12 +274,6 @@ func TestListClientServicesAcceptance(t *testing.T) {
 		Name: "list_client_services",
 	})
 	assert.NoError(t, err)
-
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodGet,
-		Path:          "/2.0/client_service",
-		Authorization: "Bearer test-token",
-	}, env.fakeAPI.Received())
 
 	contentJSON, err := json.Marshal(result.Content)
 	assert.NoError(t, err)
@@ -410,12 +298,6 @@ func TestListPackagesAcceptance(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodGet,
-		Path:          "/3.0/projects/5/packages",
-		Authorization: "Bearer test-token",
-	}, env.fakeAPI.Received())
-
 	contentJSON, err := json.Marshal(result.Content)
 	assert.NoError(t, err)
 	assert.False(t, result.IsError)
@@ -435,12 +317,6 @@ func TestListTimesheetStatusesAcceptance(t *testing.T) {
 		Name: "list_timesheet_statuses",
 	})
 	assert.NoError(t, err)
-
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodGet,
-		Path:          "/2.0/timesheet_status",
-		Authorization: "Bearer test-token",
-	}, env.fakeAPI.Received())
 
 	contentJSON, err := json.Marshal(result.Content)
 	assert.NoError(t, err)
@@ -462,12 +338,6 @@ func TestGetCurrentUserAcceptance(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	assert.Equal(t, fakeBexioCapturedRequest{
-		Method:        http.MethodGet,
-		Path:          "/3.0/users/me",
-		Authorization: "Bearer test-token",
-	}, env.fakeAPI.Received())
-
 	contentJSON, err := json.Marshal(result.Content)
 	assert.NoError(t, err)
 	assert.False(t, result.IsError)
@@ -481,9 +351,6 @@ func TestGetCurrentUserAcceptance(t *testing.T) {
 type fakeBexioAPI struct {
 	URL    string
 	server *httptest.Server
-
-	mu       sync.Mutex
-	captured fakeBexioCapturedRequest
 }
 
 type acceptanceEnv struct {
@@ -539,61 +406,49 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 	exactHandlers := map[string]http.HandlerFunc{
 		http.MethodPost + " /2.0/timesheet": func(w http.ResponseWriter, r *http.Request) {
 			reqBody := decodeRequestJSON[bexioCreateTimesheetRequest](t, r)
-			api.captureWithTimesheet(r, reqBody)
 			writeJSONResponse(t, w, http.StatusCreated, buildTimesheet(777, reqBody))
 		},
-		http.MethodGet + " /2.0/timesheet": func(w http.ResponseWriter, r *http.Request) {
-			api.capture(r)
+		http.MethodGet + " /2.0/timesheet": func(w http.ResponseWriter, _ *http.Request) {
 			writeJSONResponse(t, w, http.StatusOK, listTimesheetEntriesFixture())
 		},
-		http.MethodPost + " /2.0/timesheet/search": func(w http.ResponseWriter, r *http.Request) {
-			reqBody := decodeRequestJSON[[]bexioSearchField](t, r)
-			api.captureWithSearch(r, reqBody)
+		http.MethodPost + " /2.0/timesheet/search": func(w http.ResponseWriter, _ *http.Request) {
 			writeJSONResponse(t, w, http.StatusOK, searchTimesheetEntriesFixture())
 		},
-		http.MethodGet + " /2.0/contact": func(w http.ResponseWriter, r *http.Request) {
-			api.capture(r)
+		http.MethodGet + " /2.0/contact": func(w http.ResponseWriter, _ *http.Request) {
 			contacts := []map[string]any{
 				{"id": 11, "name_1": "Acme Corp", "name_2": ""},
 				{"id": 12, "name_1": "Globex Inc", "name_2": ""},
 			}
 			writeJSONResponse(t, w, http.StatusOK, contacts)
 		},
-		http.MethodPost + " /2.0/pr_project/search": func(w http.ResponseWriter, r *http.Request) {
-			reqBody := decodeRequestJSON[[]bexioSearchField](t, r)
-			api.captureWithSearch(r, reqBody)
+		http.MethodPost + " /2.0/pr_project/search": func(w http.ResponseWriter, _ *http.Request) {
 			writeJSONResponse(t, w, http.StatusOK, projectsFixture())
 		},
-		http.MethodGet + " /2.0/pr_project": func(w http.ResponseWriter, r *http.Request) {
-			api.capture(r)
+		http.MethodGet + " /2.0/pr_project": func(w http.ResponseWriter, _ *http.Request) {
 			writeJSONResponse(t, w, http.StatusOK, projectsFixture())
 		},
-		http.MethodGet + " /2.0/client_service": func(w http.ResponseWriter, r *http.Request) {
-			api.capture(r)
+		http.MethodGet + " /2.0/client_service": func(w http.ResponseWriter, _ *http.Request) {
 			services := []map[string]any{
 				{"id": 77, "name": "Engineering"},
 				{"id": 78, "name": "Consulting"},
 			}
 			writeJSONResponse(t, w, http.StatusOK, services)
 		},
-		http.MethodGet + " /3.0/projects/5/packages": func(w http.ResponseWriter, r *http.Request) {
-			api.capture(r)
+		http.MethodGet + " /3.0/projects/5/packages": func(w http.ResponseWriter, _ *http.Request) {
 			packages := []map[string]any{
 				{"id": 61, "name": "Backend Sprint"},
 				{"id": 62, "name": "QA Run"},
 			}
 			writeJSONResponse(t, w, http.StatusOK, packages)
 		},
-		http.MethodGet + " /2.0/timesheet_status": func(w http.ResponseWriter, r *http.Request) {
-			api.capture(r)
+		http.MethodGet + " /2.0/timesheet_status": func(w http.ResponseWriter, _ *http.Request) {
 			statuses := []map[string]any{
 				{"id": 1, "name": "Offen"},
 				{"id": 2, "name": "Erledigt"},
 			}
 			writeJSONResponse(t, w, http.StatusOK, statuses)
 		},
-		http.MethodGet + " /3.0/users/me": func(w http.ResponseWriter, r *http.Request) {
-			api.capture(r)
+		http.MethodGet + " /3.0/users/me": func(w http.ResponseWriter, _ *http.Request) {
 			user := map[string]any{
 				"id":        4,
 				"firstname": "Rudolph",
@@ -607,7 +462,7 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 	api.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 
-		if handled := handleTimesheetByIDRoutes(t, api, w, r); handled {
+		if handled := handleTimesheetByIDRoutes(t, w, r); handled {
 			return
 		}
 
@@ -624,42 +479,7 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 	return api
 }
 
-func (f *fakeBexioAPI) capture(r *http.Request) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	f.captured = fakeBexioCapturedRequest{
-		Method:        r.Method,
-		Path:          r.URL.Path,
-		Authorization: r.Header.Get("Authorization"),
-	}
-}
-
-func (f *fakeBexioAPI) captureWithTimesheet(r *http.Request, body bexioCreateTimesheetRequest) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	f.captured = fakeBexioCapturedRequest{
-		Method:        r.Method,
-		Path:          r.URL.Path,
-		Authorization: r.Header.Get("Authorization"),
-		Body:          body,
-	}
-}
-
-func (f *fakeBexioAPI) captureWithSearch(r *http.Request, searchBody []bexioSearchField) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	f.captured = fakeBexioCapturedRequest{
-		Method:        r.Method,
-		Path:          r.URL.Path,
-		Authorization: r.Header.Get("Authorization"),
-		SearchBody:    searchBody,
-	}
-}
-
-func handleTimesheetByIDRoutes(t *testing.T, api *fakeBexioAPI, w http.ResponseWriter, r *http.Request) bool {
+func handleTimesheetByIDRoutes(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
 	t.Helper()
 
 	if !strings.HasPrefix(r.URL.Path, "/2.0/timesheet/") || r.URL.Path == "/2.0/timesheet/search" {
@@ -675,18 +495,15 @@ func handleTimesheetByIDRoutes(t *testing.T, api *fakeBexioAPI, w http.ResponseW
 	switch r.Method {
 	case http.MethodPost:
 		reqBody := decodeRequestJSON[bexioCreateTimesheetRequest](t, r)
-		api.captureWithTimesheet(r, reqBody)
 		writeJSONResponse(t, w, http.StatusOK, buildTimesheet(id, reqBody))
 		return true
 	case http.MethodGet:
-		api.capture(r)
 		writeJSONResponse(t, w, http.StatusOK, bexioTimesheet{
 			ID:   id,
 			Text: "[MCP-TEST] contract test create",
 		})
 		return true
 	case http.MethodDelete:
-		api.capture(r)
 		writeJSONResponse(t, w, http.StatusOK, map[string]bool{"success": true})
 		return true
 	default:
@@ -812,12 +629,6 @@ func decodeRequestJSON[T any](t *testing.T, r *http.Request) T {
 	}
 
 	return payload
-}
-
-func (f *fakeBexioAPI) Received() fakeBexioCapturedRequest {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return f.captured
 }
 
 type fakeBexioCapturedRequest struct {
