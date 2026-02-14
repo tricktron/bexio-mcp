@@ -29,7 +29,7 @@ Compaction review asking "does this concept pay rent?" for every concept in the 
 
 `bexioClientService` and `bexioContact` are never used in production. The lookup endpoints return `json.RawMessage` by design — the server doesn't inspect or transform these payloads. The only consumers are contract tests that decode into them for shape assertions.
 
-**Verdict:** Delete. Inline anonymous structs in tests.
+**Verdict:** Resolved — deleted `lookup_types.go`, inlined anonymous structs in `server_contract_test.go` (slice 12).
 
 **Rationale for not promoting to production:** The `json.RawMessage` pass-through is intentional. This server ferries lookup data to the LLM without understanding it. Adding typed structs would mean maintaining types that track Bexio's API shape for no benefit. The exceptions (`timesheetStatus`, current user parsing in `timesheet_defaults.go`) are justified because production logic actually inspects those values.
 
@@ -55,7 +55,7 @@ Two `bexio_client_test.go` tests are unique regardless: `TestBexioClientReturnsE
 
 Zero production callers. Only used in `safeDeleteTestTimesheet` (contract test cleanup).
 
-**Verdict:** Move to test file or delete.
+**Verdict:** Resolved — removed from `bexio_client.go`, moved to `getTimesheetForCleanup` helper in `server_contract_test.go` (slice 12).
 
 ### 4. ~~Three capture methods are duplication~~ — Resolved
 
@@ -71,7 +71,7 @@ CodeScene flagged this as duplication.
 
 CodeScene flagged this as the primary duplication cluster (~150 lines → ~50 with table-driven).
 
-**Verdict:** Still valid but lower urgency. After slice 11, these tests only assert `result.IsError` and `strings.Contains(contentJSON, ...)` — no more `Received()` blocks. Table-driven refactor would collapse ~100 lines → ~40.
+**Verdict:** Resolved — collapsed 7 duplicated test functions (141 lines) into one table-driven `TestLookupToolsAcceptance` (63 lines). CodeScene score 10.0, zero duplication findings (slice 13).
 
 ### 6. `createTimesheetInput` vs `bexioCreateTimesheetRequest` — near-duplicate structs
 
