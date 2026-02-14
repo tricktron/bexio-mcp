@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -135,7 +136,10 @@ func TestContractListClientServicesAcceptance(t *testing.T) {
 	// Given list_client_services runs in fake and real environments, when the tool is called, then both modes return a list of client services with valid shape.
 	for _, tc := range contractTestEnvs(t) {
 		t.Run(tc.name, func(t *testing.T) {
-			services := callToolAndDecode[[]bexioClientService](t, tc.env, &mcp.CallToolParams{
+			services := callToolAndDecode[[]struct {
+				ID   int    `json:"id"`
+				Name string `json:"name"`
+			}](t, tc.env, &mcp.CallToolParams{
 				Name: "list_client_services",
 			})
 
@@ -153,7 +157,11 @@ func TestContractListContactsAcceptance(t *testing.T) {
 	// Given list_contacts runs in fake and real environments, when the tool is called, then both modes return a list of contacts with valid shape.
 	for _, tc := range contractTestEnvs(t) {
 		t.Run(tc.name, func(t *testing.T) {
-			contacts := callToolAndDecode[[]bexioContact](t, tc.env, &mcp.CallToolParams{
+			contacts := callToolAndDecode[[]struct {
+				ID    int    `json:"id"`
+				Name1 string `json:"name_1"`
+				Name2 string `json:"name_2"`
+			}](t, tc.env, &mcp.CallToolParams{
 				Name: "list_contacts",
 			})
 
@@ -169,7 +177,7 @@ func TestContractListContactsAcceptance(t *testing.T) {
 func safeDeleteTestTimesheet(ctx context.Context, t *testing.T, bexio BexioClient, id int) {
 	t.Helper()
 
-	timesheet, err := bexio.GetTimesheet(ctx, id)
+	timesheet, err := getTimesheetForCleanup(ctx, bexio, id)
 	assert.NoError(t, err)
 
 	if !strings.HasPrefix(timesheet.Text, "[MCP-TEST]") {
@@ -178,4 +186,18 @@ func safeDeleteTestTimesheet(ctx context.Context, t *testing.T, bexio BexioClien
 
 	_, err = bexio.DeleteTimesheet(ctx, id)
 	assert.NoError(t, err)
+}
+
+func getTimesheetForCleanup(ctx context.Context, bexio BexioClient, id int) (bexioTimesheet, error) {
+	httpReq, err := bexio.newRequest(ctx, http.MethodGet, timesheetEndpoint+"/"+strconv.Itoa(id), nil)
+	if err != nil {
+		return bexioTimesheet{}, err
+	}
+
+	var timesheet bexioTimesheet
+	if err = bexio.doAndDecode(httpReq, &timesheet); err != nil {
+		return bexioTimesheet{}, err
+	}
+
+	return timesheet, nil
 }

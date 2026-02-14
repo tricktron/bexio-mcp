@@ -4,7 +4,7 @@ Date: 2026-02-14
 
 ## Status
 
-Proposed
+Accepted — Issues 2, 4 resolved (slice 11). Issues 1, 3 → slice 12. Issue 5 → slice 13. Issue 6 → no action.
 
 ## Context
 
