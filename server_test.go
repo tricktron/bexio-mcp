@@ -201,151 +201,73 @@ func TestSearchTimesheetsAcceptance(t *testing.T) {
 	)
 }
 
-func TestListContactsAcceptance(t *testing.T) {
+func TestLookupToolsAcceptance(t *testing.T) {
 	// Slice: Lookup Tools (Contacts, Projects, Packages, Services)
-	// Given a running MCP server, when the client calls list_contacts, then the tool returns a list of contacts with id and name.
-	env := newAcceptanceEnv(t)
-
-	result, err := env.callTool(&mcp.CallToolParams{
-		Name: "list_contacts",
-	})
-	assert.NoError(t, err)
-
-	contentJSON, err := json.Marshal(result.Content)
-	assert.NoError(t, err)
-	assert.False(t, result.IsError)
-	assert.True(
-		t,
-		strings.Contains(string(contentJSON), "Acme Corp"),
-		"result should contain contact entries",
-	)
-}
-
-func TestListProjectsAcceptance(t *testing.T) {
-	// Slice: Lookup Tools (Contacts, Projects, Packages, Services)
-	// Given a running MCP server, when the client calls list_projects with an optional contact_id filter, then the tool returns projects associated with that contact.
-	env := newAcceptanceEnv(t)
-
-	result, err := env.callTool(&mcp.CallToolParams{
-		Name: "list_projects",
-		Arguments: map[string]any{
-			"contact_id": 11,
+	// Given a running MCP server, when lookup tools are called, then each tool returns non-error MCP content that includes expected values.
+	testCases := []struct {
+		name       string
+		toolName   string
+		arguments  map[string]any
+		expected   string
+		errorLabel string
+	}{
+		{name: "ListContacts", toolName: "list_contacts", expected: "Acme Corp", errorLabel: "contact entries"},
+		{
+			name:       "ListProjects",
+			toolName:   "list_projects",
+			arguments:  map[string]any{"contact_id": 11},
+			expected:   "Project Alpha",
+			errorLabel: "project entries",
 		},
-	})
-	assert.NoError(t, err)
-
-	contentJSON, err := json.Marshal(result.Content)
-	assert.NoError(t, err)
-	assert.False(t, result.IsError)
-	assert.True(
-		t,
-		strings.Contains(string(contentJSON), "Project Alpha"),
-		"result should contain project entries",
-	)
-}
-
-func TestListProjectsWithoutContactIDAcceptance(t *testing.T) {
-	// Slice: Fix Smoke Test Findings
-	// Given list_projects is called without contact_id, when the request reaches Bexio, then it uses GET /2.0/pr_project instead of POST search.
-	env := newAcceptanceEnv(t)
-
-	result, err := env.callTool(&mcp.CallToolParams{
-		Name:      "list_projects",
-		Arguments: map[string]any{},
-	})
-	assert.NoError(t, err)
-
-	contentJSON, err := json.Marshal(result.Content)
-	assert.NoError(t, err)
-	assert.False(t, result.IsError)
-	assert.True(
-		t,
-		strings.Contains(string(contentJSON), "Project Alpha"),
-		"result should contain project entries",
-	)
-}
-
-func TestListClientServicesAcceptance(t *testing.T) {
-	// Slice: Lookup Tools (Contacts, Projects, Packages, Services)
-	// Given a running MCP server, when the client calls list_client_services, then the tool returns available business activities (Taetigkeiten).
-	env := newAcceptanceEnv(t)
-
-	result, err := env.callTool(&mcp.CallToolParams{
-		Name: "list_client_services",
-	})
-	assert.NoError(t, err)
-
-	contentJSON, err := json.Marshal(result.Content)
-	assert.NoError(t, err)
-	assert.False(t, result.IsError)
-	assert.True(
-		t,
-		strings.Contains(string(contentJSON), "Engineering"),
-		"result should contain client service entries",
-	)
-}
-
-func TestListPackagesAcceptance(t *testing.T) {
-	// Slice: Lookup Tools (Contacts, Projects, Packages, Services)
-	// Given a running MCP server, when the client calls list_packages with a project_id, then the tool returns work packages for that project.
-	env := newAcceptanceEnv(t)
-
-	result, err := env.callTool(&mcp.CallToolParams{
-		Name: "list_packages",
-		Arguments: map[string]any{
-			"project_id": 5,
+		{
+			name:       "ListProjectsWithoutContactID",
+			toolName:   "list_projects",
+			arguments:  map[string]any{},
+			expected:   "Project Alpha",
+			errorLabel: "project entries",
 		},
-	})
-	assert.NoError(t, err)
+		{
+			name:       "ListClientServices",
+			toolName:   "list_client_services",
+			expected:   "Engineering",
+			errorLabel: "client service entries",
+		},
+		{
+			name:       "ListPackages",
+			toolName:   "list_packages",
+			arguments:  map[string]any{"project_id": 5},
+			expected:   "Backend Sprint",
+			errorLabel: "package entries",
+		},
+		{
+			name:       "ListTimesheetStatuses",
+			toolName:   "list_timesheet_statuses",
+			expected:   "Erledigt",
+			errorLabel: "timesheet status entries",
+		},
+		{name: "GetCurrentUser", toolName: "get_current_user", expected: "Rudolph", errorLabel: "current user entry"},
+	}
 
-	contentJSON, err := json.Marshal(result.Content)
-	assert.NoError(t, err)
-	assert.False(t, result.IsError)
-	assert.True(
-		t,
-		strings.Contains(string(contentJSON), "Backend Sprint"),
-		"result should contain package entries",
-	)
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newAcceptanceEnv(t)
 
-func TestListTimesheetStatusesAcceptance(t *testing.T) {
-	// Slice: Timesheet Status & Current User
-	// Given a running MCP server, when the client calls list_timesheet_statuses, then the tool returns available statuses with id and name.
-	env := newAcceptanceEnv(t)
+			result, err := env.callTool(&mcp.CallToolParams{
+				Name:      tc.toolName,
+				Arguments: tc.arguments,
+			})
+			assert.NoError(t, err)
 
-	result, err := env.callTool(&mcp.CallToolParams{
-		Name: "list_timesheet_statuses",
-	})
-	assert.NoError(t, err)
-
-	contentJSON, err := json.Marshal(result.Content)
-	assert.NoError(t, err)
-	assert.False(t, result.IsError)
-	assert.True(
-		t,
-		strings.Contains(string(contentJSON), "Erledigt"),
-		"result should contain timesheet status entries",
-	)
-}
-
-func TestGetCurrentUserAcceptance(t *testing.T) {
-	// Slice: Timesheet Status & Current User
-	// Given a running MCP server, when the client calls get_current_user, then the tool returns the authenticated user's id and name.
-	env := newAcceptanceEnv(t)
-
-	result, err := env.callTool(&mcp.CallToolParams{
-		Name: "get_current_user",
-	})
-	assert.NoError(t, err)
-
-	contentJSON, err := json.Marshal(result.Content)
-	assert.NoError(t, err)
-	assert.False(t, result.IsError)
-	assert.True(
-		t,
-		strings.Contains(string(contentJSON), "Rudolph"),
-		"result should contain current user entry",
-	)
+			contentJSON, err := json.Marshal(result.Content)
+			assert.NoError(t, err)
+			assert.False(t, result.IsError)
+			assert.True(
+				t,
+				strings.Contains(string(contentJSON), tc.expected),
+				"result should contain "+tc.errorLabel,
+			)
+		})
+	}
 }
 
 type fakeBexioAPI struct {
