@@ -232,3 +232,35 @@ None
 
 ### Recall Answers
 Skipped
+
+---
+
+## 2026-02-14: Fix Smoke Test Findings
+
+### Acceptance Test
+- Entry: `go test ./...` via `server_test.go`
+- Verified: `TestListTimesheetsAcceptance` returns realistic datetime tracking and core timesheet fields; `TestListProjectsWithoutContactIDAcceptance` uses `GET /2.0/pr_project` when `contact_id` is absent.
+
+### Architecture
+```mermaid
+graph TD
+    MCPTools[list_timesheets / list_projects] --> BexioClient
+    BexioClient --> BexioAPI[(bexio API)]
+```
+
+### Functional Core
+- None: no new core classes in this slice.
+
+### Unit Tests (2)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| BexioClient | 2 | Decodes core timesheet response fields in list responses; lists projects via `GET /2.0/pr_project` |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
