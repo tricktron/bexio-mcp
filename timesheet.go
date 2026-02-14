@@ -57,17 +57,6 @@ type bexioListProjectPackagesRequest struct {
 	ProjectID int `json:"project_id"`
 }
 
-type bexioClientService struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-type bexioContact struct {
-	ID    int    `json:"id"`
-	Name1 string `json:"name_1"`
-	Name2 string `json:"name_2"`
-}
-
 type bexioTimesheet struct {
 	ID              int           `json:"id"`
 	UserID          int           `json:"user_id"`

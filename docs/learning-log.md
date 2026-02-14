@@ -95,6 +95,39 @@ None
 ### Recall Answers
 N/A
 
+---
+
+## 2026-02-14: Real API Contract Tests (Environment-Polymorphic)
+
+### Acceptance Test
+- Entry: `server_contract_test.go` contract tests via `go test ./... -run TestContract -v`
+- Verified: Same observable contracts hold in fake mode and optional real mode for create/list timesheet and list contacts/client services
+
+### Architecture
+```mermaid
+graph TD
+    ContractTests[server_contract_test.go] --> MCPServer[newMCPServer]
+    MCPServer --> BexioClient
+    BexioClient --> BexioAPI[(api.bexio.com or httptest fake)]
+```
+
+### Functional Core
+- contractTestEnv: Environment selection and cleanup strategy for fake/real contract runs
+
+### Unit Tests (0)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| N/A | 0 | N/A |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
 ## Slice 05: Timesheet Status & Current User
 
 ### Acceptance Tests
