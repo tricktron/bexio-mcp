@@ -52,8 +52,12 @@ type bexioSearchTimesheetsRequest struct {
 type bexioTimesheet struct {
 	ID              int           `json:"id"`
 	UserID          int           `json:"user_id"`
+	StatusID        int           `json:"status_id"`
 	AllowableBill   bool          `json:"allowable_bill"`
 	ClientServiceID int           `json:"client_service_id"`
+	Date            string        `json:"date"`
+	Duration        string        `json:"duration"`
+	Running         bool          `json:"running"`
 	Text            string        `json:"text,omitempty"`
 	ContactID       *int          `json:"contact_id,omitempty"`
 	PrProjectID     *int          `json:"pr_project_id,omitempty"`

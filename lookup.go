@@ -1,7 +1,7 @@
 package main
 
 type bexioListProjectsRequest struct {
-	ContactID *int `json:"contact_id"`
+	ContactID *int `json:"contact_id,omitempty"`
 }
 
 type bexioListProjectPackagesRequest struct {

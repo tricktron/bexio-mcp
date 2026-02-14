@@ -152,7 +152,7 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) {
 				return projects, nil
 			}
 
-			projects, err := bexio.SearchProjects(ctx, input.ContactID)
+			projects, err := bexio.SearchProjects(ctx, *input.ContactID)
 			if err != nil {
 				return nil, fmt.Errorf("search projects: %w", err)
 			}

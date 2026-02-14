@@ -552,17 +552,11 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 		http.MethodPost + " /2.0/pr_project/search": func(w http.ResponseWriter, r *http.Request) {
 			reqBody := decodeRequestJSON[[]bexioSearchField](t, r)
 			api.captureWithSearch(r, reqBody)
-			projects := []map[string]any{
-				{"id": 501, "name": "Project Alpha", "contact_id": 11},
-			}
-			writeJSONResponse(t, w, http.StatusOK, projects)
+			writeJSONResponse(t, w, http.StatusOK, projectsFixture())
 		},
 		http.MethodGet + " /2.0/pr_project": func(w http.ResponseWriter, r *http.Request) {
 			api.capture(r)
-			projects := []map[string]any{
-				{"id": 501, "name": "Project Alpha", "contact_id": 11},
-			}
-			writeJSONResponse(t, w, http.StatusOK, projects)
+			writeJSONResponse(t, w, http.StatusOK, projectsFixture())
 		},
 		http.MethodGet + " /2.0/client_service": func(w http.ResponseWriter, r *http.Request) {
 			api.capture(r)
@@ -773,6 +767,12 @@ func searchTimesheetEntriesFixture() []bexioTimesheet {
 				End:   "2026-02-10 09:00:00",
 			},
 		},
+	}
+}
+
+func projectsFixture() []map[string]any {
+	return []map[string]any{
+		{"id": 501, "name": "Project Alpha", "contact_id": 11},
 	}
 }
 

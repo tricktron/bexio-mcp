@@ -108,6 +108,10 @@ func (c BexioClient) ListContacts(ctx context.Context) (json.RawMessage, error) 
 	return c.getRaw(ctx, contactEndpoint)
 }
 
+func (c BexioClient) ListProjects(ctx context.Context) (json.RawMessage, error) {
+	return c.getRaw(ctx, projectEndpoint)
+}
+
 func (c BexioClient) ListClientServices(ctx context.Context) (json.RawMessage, error) {
 	return c.getRaw(ctx, clientServiceEndpoint)
 }
@@ -124,11 +128,8 @@ func (c BexioClient) ListPackages(ctx context.Context, projectID int) (json.RawM
 	return c.getRaw(ctx, fmt.Sprintf("/3.0/projects/%d/packages", projectID))
 }
 
-func (c BexioClient) SearchProjects(ctx context.Context, contactID *int) (json.RawMessage, error) {
-	fields := make([]bexioSearchField, 0, 1)
-	if contactID != nil {
-		fields = append(fields, bexioSearchField{Field: "contact_id", Value: strconv.Itoa(*contactID), Criteria: "="})
-	}
+func (c BexioClient) SearchProjects(ctx context.Context, contactID int) (json.RawMessage, error) {
+	fields := []bexioSearchField{{Field: "contact_id", Value: strconv.Itoa(contactID), Criteria: "="}}
 
 	return c.postRaw(ctx, projectEndpoint+searchEndpointSuffix, fields)
 }

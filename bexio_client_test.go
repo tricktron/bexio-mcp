@@ -41,7 +41,7 @@ func TestBexioClientCreateTimesheet(t *testing.T) {
 	}
 
 	received := fakeBexioCapturedRequest{}
-	server := newTimesheetServer(t, &received, created)
+	server := newTimesheetServer(t, &received, created, http.StatusCreated)
 
 	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
 
@@ -106,25 +106,7 @@ func TestBexioClientEditTimesheet(t *testing.T) {
 	}
 
 	received := fakeBexioCapturedRequest{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-
-		var body bexioCreateTimesheetRequest
-		err := json.NewDecoder(r.Body).Decode(&body)
-		assert.NoError(t, err)
-
-		received = fakeBexioCapturedRequest{
-			Method:        r.Method,
-			Path:          r.URL.Path,
-			Authorization: r.Header.Get("Authorization"),
-			Body:          body,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(expected)
-		assert.NoError(t, err)
-	}))
-	t.Cleanup(server.Close)
+	server := newTimesheetServer(t, &received, expected, http.StatusOK)
 
 	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
 
@@ -142,63 +124,8 @@ func TestBexioClientEditTimesheet(t *testing.T) {
 func TestBexioClientListTimesheets(t *testing.T) {
 	t.Parallel()
 
-	response := []bexioTimesheet{
-		{
-			ID:              801,
-			UserID:          1,
-			AllowableBill:   true,
-			ClientServiceID: 11,
-			Text:            "list-entry-1",
-			Tracking: trackingRange{
-				Type:  "range",
-				Date:  "2026-02-01",
-				Start: "2026-02-01 09:00:00",
-				End:   "2026-02-01 10:00:00",
-			},
-		},
-		{
-			ID:              802,
-			UserID:          2,
-			AllowableBill:   false,
-			ClientServiceID: 12,
-			Text:            "list-entry-2",
-			Tracking: trackingRange{
-				Type:  "range",
-				Date:  "2026-02-02",
-				Start: "2026-02-02 10:00:00",
-				End:   "2026-02-02 11:00:00",
-			},
-		},
-	}
-
-	expected := []bexioTimesheet{
-		{
-			ID:              801,
-			UserID:          1,
-			AllowableBill:   true,
-			ClientServiceID: 11,
-			Text:            "list-entry-1",
-			Tracking: trackingRange{
-				Type:  "range",
-				Date:  "2026-02-01",
-				Start: "2026-02-01 09:00:00",
-				End:   "2026-02-01 10:00:00",
-			},
-		},
-		{
-			ID:              802,
-			UserID:          2,
-			AllowableBill:   false,
-			ClientServiceID: 12,
-			Text:            "list-entry-2",
-			Tracking: trackingRange{
-				Type:  "range",
-				Date:  "2026-02-02",
-				Start: "2026-02-02 10:00:00",
-				End:   "2026-02-02 11:00:00",
-			},
-		},
-	}
+	response := listTimesheetEntriesFixture()
+	expected := listTimesheetEntriesFixture()
 
 	received := fakeBexioCapturedRequest{}
 	server := newListTimesheetsServer(t, &received, response)
@@ -222,21 +149,7 @@ func TestBexioClientSearchTimesheets(t *testing.T) {
 		{Field: "user_id", Value: "42", Criteria: "="},
 	}
 
-	expected := []bexioTimesheet{
-		{
-			ID:              901,
-			UserID:          42,
-			AllowableBill:   true,
-			ClientServiceID: 77,
-			Text:            "search-match-1",
-			Tracking: trackingRange{
-				Type:  "range",
-				Date:  "2026-02-10",
-				Start: "2026-02-10 08:00:00",
-				End:   "2026-02-10 09:00:00",
-			},
-		},
-	}
+	expected := searchTimesheetEntriesFixture()
 
 	received := fakeBexioCapturedRequest{}
 	server := newSearchTimesheetsServer(t, &received, expected)
@@ -274,6 +187,26 @@ func TestBexioClientListContacts(t *testing.T) {
 	assert.True(t, strings.Contains(string(result), "Acme Corp"), "result should contain contact data")
 }
 
+func TestBexioClientListProjects(t *testing.T) {
+	t.Parallel()
+
+	const responseBody = `[{"id":501,"name":"Project Alpha","contact_id":11}]`
+
+	received := fakeBexioCapturedRequest{}
+	server := newRawResponseServer(t, &received, responseBody, nil)
+
+	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
+
+	result, err := client.ListProjects(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, fakeBexioCapturedRequest{
+		Method:        http.MethodGet,
+		Path:          "/2.0/pr_project",
+		Authorization: "Bearer test-token",
+	}, received)
+	assert.True(t, strings.Contains(string(result), "Project Alpha"), "result should contain project data")
+}
+
 func TestBexioClientSearchProjects(t *testing.T) {
 	t.Parallel()
 
@@ -297,7 +230,7 @@ func TestBexioClientSearchProjects(t *testing.T) {
 
 	client := NewBexioClient(server.URL, "test-token", http.DefaultClient)
 
-	result, err := client.SearchProjects(context.Background(), &contactID)
+	result, err := client.SearchProjects(context.Background(), contactID)
 	assert.NoError(t, err)
 	assert.Equal(t, fakeBexioCapturedRequest{
 		Method:        http.MethodPost,
@@ -370,7 +303,12 @@ func TestBexioClientReturnsErrorOnNon2xxStatus(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid field")
 }
 
-func newTimesheetServer(t *testing.T, received *fakeBexioCapturedRequest, response bexioTimesheet) *httptest.Server {
+func newTimesheetServer(
+	t *testing.T,
+	received *fakeBexioCapturedRequest,
+	response bexioTimesheet,
+	statusCode int,
+) *httptest.Server {
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -388,7 +326,7 @@ func newTimesheetServer(t *testing.T, received *fakeBexioCapturedRequest, respon
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(statusCode)
 		err = json.NewEncoder(w).Encode(response)
 		assert.NoError(t, err)
 	}))
