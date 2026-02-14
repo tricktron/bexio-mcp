@@ -28,71 +28,6 @@ graph TD
 None
 
 ### Recall Answers
-1. Added ListTimesheets and SearchTimesheets methods to BexioClient
-2. That list and search timesheet tools work end-to-end and return data via MCP
-3. Nothing — straightforward slice
-
----
-
-## Slice: 01c — Adopt MCP SDK
-
-### Date
-2026-02-09
-
-### Acceptance Test
-`TestCreateTimesheetAcceptance` — SDK client connects in-process, calls `create_timesheet`, verifies Bexio API request and tool result content.
-
-### Architecture
-```mermaid
-graph LR
-    Client[MCP Client] -->|MCP protocol / stdio| Server[bexio-mcp<br>go-sdk/mcp]
-    Server -->|REST API| Bexio[api.bexio.com]
-```
-
-### Core Classes Discovered
-None — pure shell rewrite.
-
-### Unit Tests
-None — shell wiring only, covered by acceptance test.
-
-### Discoveries
-- `assumption-invalid`: Hand-rolled JSON-RPC passed unit tests but failed against real MCP client (opencode 30s timeout). Root cause unknown. Adopted `go-sdk/mcp` which works immediately.
-
-### Recall
-(pending)
-
----
-
-## 2026-02-10: List & Search Timesheets
-
-### Acceptance Test
-- Entry: MCP tools `list_timesheets` and `search_timesheets`
-- Verified: Tool calls map to `GET /2.0/timesheet` and `POST /2.0/timesheet/search` and return matching timesheet entries
-
-### Architecture
-```mermaid
-graph TD
-    MCPServer[newMCPServer] --> TimesheetCore[Timesheet Models]
-    BexioClient --> TimesheetCore
-```
-
-### Functional Core
-- bexioSearchField: Search filter contract shared by MCP and HTTP layers
-- bexioSearchTimesheetsRequest: MCP request envelope for search filters
-- bexioTimesheet: Response model shared across boundaries
-
-### Unit Tests (3)
-| Component | Tests | Behaviors |
-| --------- | ----- | --------- |
-| BexioClient | 3 | GET timesheets, POST search filters, auth/header and JSON decoding behavior |
-
-### Stats
-- Iterations: 1
-
-### Discoveries
-None
-
-### Recall Answers
 N/A
 
 ---
@@ -291,6 +226,34 @@ graph TD
 
 ### Stats
 - Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+---
+
+## 2026-02-14: Separate Acceptance and Client Test Concerns
+
+### Acceptance Test
+- Entry: `go test ./...`
+- Verified: All tests pass, `server_test.go` contains zero `env.fakeAPI.Received()` assertions, `bexio_client_test.go` covers HTTP contract assertions for every BexioClient method, `server_contract_test.go` unchanged
+
+### Architecture
+No structural changes — pure test refactor.
+
+### Functional Core
+None — test-only changes.
+
+### Unit Tests
+No new tests. Existing 12 client tests in `bexio_client_test.go` already covered all HTTP contracts.
+
+### Stats
+- Lines removed: 130 (server_test.go 834 → 704)
+- Assertions removed: 13 `env.fakeAPI.Received()` blocks
+- Files changed: 1 (server_test.go)
 
 ### Discoveries
 None
