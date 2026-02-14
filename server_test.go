@@ -277,8 +277,6 @@ type fakeBexioAPI struct {
 
 type acceptanceEnv struct {
 	ctx      context.Context
-	fakeAPI  *fakeBexioAPI
-	bexio    BexioClient
 	callTool func(params *mcp.CallToolParams) (*mcp.CallToolResult, error)
 }
 
@@ -287,10 +285,8 @@ func newAcceptanceEnv(t *testing.T) acceptanceEnv {
 
 	fakeAPI := startFakeBexioAPI(t)
 	bexio := NewBexioClient(fakeAPI.URL, "test-token", http.DefaultClient)
-	env := newAcceptanceEnvWith(t, bexio)
-	env.fakeAPI = fakeAPI
 
-	return env
+	return newAcceptanceEnvWith(t, bexio)
 }
 
 func newAcceptanceEnvWith(t *testing.T, bexio BexioClient) acceptanceEnv {
@@ -313,8 +309,7 @@ func newAcceptanceEnvWith(t *testing.T, bexio BexioClient) acceptanceEnv {
 	t.Cleanup(func() { clientSession.Close() })
 
 	return acceptanceEnv{
-		ctx:   ctx,
-		bexio: bexio,
+		ctx: ctx,
 		callTool: func(params *mcp.CallToolParams) (*mcp.CallToolResult, error) {
 			return clientSession.CallTool(ctx, params)
 		},
