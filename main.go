@@ -27,47 +27,45 @@ func newMCPServer(bexio BexioClient) *mcp.Server {
 	return server
 }
 
-//nolint:gocognit // keep timesheet registrations inline for consistency
+func createTimesheet(ctx context.Context, bexio BexioClient, input createTimesheetInput) (bexioTimesheet, error) {
+	var currentUserID int
+	if input.UserID == nil {
+		rawCurrentUser, err := bexio.GetCurrentUser(ctx)
+		if err != nil {
+			return bexioTimesheet{}, fmt.Errorf("get current user: %w", err)
+		}
+
+		currentUserID, err = parseCurrentUserID(rawCurrentUser)
+		if err != nil {
+			return bexioTimesheet{}, fmt.Errorf("parse current user id: %w", err)
+		}
+	}
+
+	var statuses []timesheetStatus
+	if input.StatusID == nil {
+		rawStatuses, err := bexio.ListTimesheetStatuses(ctx)
+		if err != nil {
+			return bexioTimesheet{}, fmt.Errorf("list timesheet statuses: %w", err)
+		}
+
+		statuses, err = parseTimesheetStatuses(rawStatuses)
+		if err != nil {
+			return bexioTimesheet{}, fmt.Errorf("parse timesheet statuses: %w", err)
+		}
+	}
+
+	request := resolveTimesheetDefaults(input, currentUserID, statuses)
+
+	return bexio.CreateTimesheet(ctx, request)
+}
+
 func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 	registerTool(
 		server,
 		"create_timesheet",
 		"Create a timesheet entry in Bexio",
 		func(ctx context.Context, input createTimesheetInput) (any, error) {
-			var currentUserID int
-			if input.UserID == nil {
-				rawCurrentUser, err := bexio.GetCurrentUser(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("get current user: %w", err)
-				}
-
-				currentUserID, err = parseCurrentUserID(rawCurrentUser)
-				if err != nil {
-					return nil, fmt.Errorf("parse current user id: %w", err)
-				}
-			}
-
-			var statuses []timesheetStatus
-			if input.StatusID == nil {
-				rawStatuses, err := bexio.ListTimesheetStatuses(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("list timesheet statuses: %w", err)
-				}
-
-				statuses, err = parseTimesheetStatuses(rawStatuses)
-				if err != nil {
-					return nil, fmt.Errorf("parse timesheet statuses: %w", err)
-				}
-			}
-
-			request := resolveTimesheetDefaults(input, currentUserID, statuses)
-
-			created, err := bexio.CreateTimesheet(ctx, request)
-			if err != nil {
-				return nil, fmt.Errorf("create timesheet: %w", err)
-			}
-
-			return created, nil
+			return createTimesheet(ctx, bexio, input)
 		},
 	)
 	registerTool(

@@ -5,8 +5,7 @@ workspace {
         mcpClient = softwareSystem "MCP Client" "Claude Desktop, VS Code, etc." "Existing System"
 
         bexioMcp = softwareSystem "bexio-mcp" "MCP server exposing bexio timesheet and lookup operations as tools" {
-            mcpServer = container "MCP Server" "Handles MCP protocol, tool registration, and handlers for timesheet tools (create/list/search) and lookup tools (list_contacts, list_projects, list_packages, list_client_services)" "Go (go-sdk/mcp)"
-            timesheetDefaults = container "Timesheet Defaults" "Pure functions: resolves missing user_id and status_id from API lookups" "Go"
+            mcpServer = container "MCP Server" "Handles MCP protocol, tool registration, handlers for timesheet tools (create/list/search) and lookup tools, and resolves default user_id/status_id from API lookups" "Go (go-sdk/mcp)"
             bexioClient = container "Bexio API Client" "HTTP client wrapping bexio REST API: timesheets (v2.0), contacts (v2.0), projects (v2.0), packages (v3.0), client_services (v2.0)" "Go (net/http)"
         }
 
@@ -15,7 +14,6 @@ workspace {
         developer -> mcpClient "Logs time via natural language"
         mcpClient -> mcpServer "MCP protocol over stdio" "JSON-RPC"
         mcpServer -> bexioClient "Calls bexio operations"
-        mcpServer -> timesheetDefaults "Resolves defaults"
         bexioClient -> bexioApi "REST API calls" "HTTPS + Bearer token"
     }
 

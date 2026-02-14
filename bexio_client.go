@@ -189,8 +189,7 @@ func (c BexioClient) doAndDecode(httpReq *http.Request, target any) error {
 	}
 	defer body.Close()
 
-	err = decodeJSON(body, target)
-	if err != nil {
+	if err = json.NewDecoder(body).Decode(target); err != nil {
 		return fmt.Errorf("decode response: %w", err)
 	}
 
@@ -227,8 +226,4 @@ func (c BexioClient) newRequest(ctx context.Context, method, path string, body i
 	httpReq.Header.Set("Authorization", "Bearer "+c.token)
 
 	return httpReq, nil
-}
-
-func decodeJSON(src io.Reader, target any) error {
-	return json.NewDecoder(src).Decode(target)
 }

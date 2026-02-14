@@ -49,6 +49,14 @@ type bexioSearchTimesheetsRequest struct {
 	SearchFields []bexioSearchField `json:"search_fields"`
 }
 
+type bexioListProjectsRequest struct {
+	ContactID *int `json:"contact_id,omitempty"`
+}
+
+type bexioListProjectPackagesRequest struct {
+	ProjectID int `json:"project_id"`
+}
+
 type bexioTimesheet struct {
 	ID              int           `json:"id"`
 	UserID          int           `json:"user_id"`

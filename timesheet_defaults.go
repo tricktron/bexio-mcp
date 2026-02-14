@@ -17,8 +17,13 @@ func resolveTimesheetDefaults(
 	currentUserID int,
 	statuses []timesheetStatus,
 ) bexioCreateTimesheetRequest {
+	userID := currentUserID
+	if input.UserID != nil {
+		userID = *input.UserID
+	}
+
 	return bexioCreateTimesheetRequest{
-		UserID:          resolveUserID(input.UserID, currentUserID),
+		UserID:          userID,
 		StatusID:        resolveStatusID(input.StatusID, statuses),
 		AllowableBill:   input.AllowableBill,
 		ClientServiceID: input.ClientServiceID,
@@ -27,14 +32,6 @@ func resolveTimesheetDefaults(
 		ContactID:       input.ContactID,
 		PrProjectID:     input.PrProjectID,
 	}
-}
-
-func resolveUserID(inputUserID *int, currentUserID int) int {
-	if inputUserID != nil {
-		return *inputUserID
-	}
-
-	return currentUserID
 }
 
 func resolveStatusID(inputStatusID *int, statuses []timesheetStatus) int {
