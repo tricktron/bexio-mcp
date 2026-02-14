@@ -951,6 +951,24 @@ func TestContractListTimesheetsAcceptance(t *testing.T) {
 	}
 }
 
+func TestContractListClientServicesAcceptance(t *testing.T) {
+	// Slice: Real API Contract Tests (Environment-Polymorphic)
+	// Given list_client_services runs in fake and real environments, when the tool is called, then both modes return a list of client services with valid shape.
+	for _, tc := range contractTestEnvs(t) {
+		t.Run(tc.name, func(t *testing.T) {
+			services := callToolAndDecode[[]bexioClientService](t, tc.env, &mcp.CallToolParams{
+				Name: "list_client_services",
+			})
+
+			assert.True(t, len(services) > 0, "should return at least one client service")
+
+			first := services[0]
+			assert.NotEqual(t, 0, first.ID)
+			assert.NotEqual(t, "", first.Name)
+		})
+	}
+}
+
 func safeDeleteTestTimesheet(ctx context.Context, t *testing.T, bexio BexioClient, id int) {
 	t.Helper()
 
