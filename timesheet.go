@@ -1,6 +1,7 @@
 package main
 
 type TrackingType string
+type SearchCriteria string
 
 type trackingRange struct {
 	Type  TrackingType `json:"type"           jsonschema:"Tracking mode: 'range' for start/end times, or 'duration' for a duration value"`
@@ -42,9 +43,9 @@ type bexioDeleteTimesheetRequest struct {
 }
 
 type bexioSearchField struct {
-	Field    string `json:"field"              jsonschema:"Bexio timesheet field name to filter on (e.g. 'user_id', 'contact_id', 'pr_project_id')"`
-	Value    string `json:"value"              jsonschema:"Value to match against the field"`
-	Criteria string `json:"criteria,omitempty" jsonschema:"Match operator: '=' for exact match, 'like' for partial, '!=' for not equal, '>' for greater, '<' for less"`
+	Field    string         `json:"field"              jsonschema:"Bexio timesheet field name to filter on (e.g. 'user_id', 'contact_id', 'pr_project_id')"`
+	Value    string         `json:"value"              jsonschema:"Value to match against the field"`
+	Criteria SearchCriteria `json:"criteria,omitempty" jsonschema:"Match operator: '=' for exact match, 'like' for partial, '!=' for not equal, '>' for greater, '<' for less"`
 }
 
 type timesheetDateRangeFilter struct {
