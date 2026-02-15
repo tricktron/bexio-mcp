@@ -46,8 +46,8 @@ func run(getenv func(string) string, stderr io.Writer, transport mcp.Transport) 
 		return 1
 	}
 
-	if err := session.Wait(); err != nil {
-		fmt.Fprintf(stderr, "%v\n", err)
+	if waitErr := session.Wait(); waitErr != nil {
+		fmt.Fprintf(stderr, "%v\n", waitErr)
 		return 1
 	}
 
