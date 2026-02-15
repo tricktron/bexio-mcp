@@ -104,8 +104,15 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 				return nil, fmt.Errorf("list timesheets: %w", err)
 			}
 
-			if input.DateFrom != nil && input.DateTo != nil {
-				entries = filterTimesheetsByDate(entries, *input.DateFrom, *input.DateTo)
+			if input.DateFrom != nil || input.DateTo != nil {
+				from, to := "", ""
+				if input.DateFrom != nil {
+					from = *input.DateFrom
+				}
+				if input.DateTo != nil {
+					to = *input.DateTo
+				}
+				entries = filterTimesheetsByDate(entries, from, to)
 			}
 
 			return entries, nil
