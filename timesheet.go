@@ -11,6 +11,16 @@ type TrackingType string
 type SearchField string
 type SearchCriteria string
 
+const durationTrackingType TrackingType = "duration"
+
+type durationTrackingRangeJSON struct {
+	Type     TrackingType `json:"type"`
+	Date     string       `json:"date,omitempty"`
+	Duration string       `json:"duration,omitempty"`
+}
+
+type trackingRangeJSON trackingRange
+
 type trackingRange struct {
 	Type     TrackingType `json:"type"               jsonschema:"Tracking mode: range or duration"`
 	Date     string       `json:"date,omitempty"     jsonschema:"Date of the entry in YYYY-MM-DD format"`
@@ -20,23 +30,15 @@ type trackingRange struct {
 }
 
 func (t trackingRange) MarshalJSON() ([]byte, error) {
-	if t.Type == "duration" {
-		type durationTrackingRange struct {
-			Type     TrackingType `json:"type"`
-			Date     string       `json:"date,omitempty"`
-			Duration string       `json:"duration,omitempty"`
-		}
-
-		return json.Marshal(durationTrackingRange{
+	if t.Type == durationTrackingType {
+		return json.Marshal(durationTrackingRangeJSON{
 			Type:     t.Type,
 			Date:     t.Date,
 			Duration: t.Duration,
 		})
 	}
 
-	type fullTrackingRange trackingRange
-
-	return json.Marshal(fullTrackingRange(t))
+	return json.Marshal(trackingRangeJSON(t))
 }
 
 type createTimesheetInput struct {
