@@ -32,6 +32,41 @@ N/A
 
 ---
 
+## 2026-02-15: 25-wire-run-startup
+
+### Acceptance Test
+- Entry: `TestRunStartsServerAcceptance`
+- Verified: `run()` starts a functioning MCP server
+
+### Architecture
+```mermaid
+graph TD
+    Run[run()] --> Validate[validateConfig]
+    Validate --> Client[NewBexioClient]
+    Client --> Server[newMCPServer]
+    Server --> Connect[transport connect]
+    Connect --> Wait[session wait]
+```
+
+### Functional Core
+- None new (reuses `validateConfig`, `newMCPServer`, `NewBexioClient`)
+
+### Unit Tests (0)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| N/A | 0 | Acceptance test was sufficient for shell wiring |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+- Key insight: Slice 21 left `run()` as a validation-only stub that never started the server; this slice closed the gap by wiring the full startup and testing it end-to-end through an in-memory MCP transport
+
+---
+
 ## 2026-02-15: 19-schema-constraints
 
 ### Acceptance Test
