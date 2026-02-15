@@ -32,6 +32,39 @@ N/A
 
 ---
 
+## 2026-02-15: 19-schema-constraints
+
+### Acceptance Test
+- Entry: `search_timesheets` and `create_timesheet` schema checks in `schema_test.go`
+- Verified: enum and date-pattern constraints are present in registered MCP tool schemas
+
+### Architecture
+```mermaid
+graph TD
+    Register[registerTool] --> SchemaOverrides[schema_types.go]
+    SchemaOverrides --> Tools[MCP tool InputSchema]
+```
+
+### Functional Core
+- `timesheetSchemaTypeOverrides`: central enum constraints for timesheet write-path types
+- `searchSchemaTypeOverrides`: central enum constraints for search field/criteria types
+
+### Unit Tests (1)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| Schema wiring | 1 | Registered schemas include exact enum values and YYYY-MM-DD date patterns |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+---
+
 ## 2026-02-15: 16-merge-list-search-timesheets
 
 ### Acceptance Test

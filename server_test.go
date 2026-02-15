@@ -405,7 +405,8 @@ func newAcceptanceEnvWith(t *testing.T, bexio BexioClient) acceptanceEnv {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	t.Cleanup(cancel)
 
-	server := newMCPServer(bexio)
+	server, err := newMCPServer(bexio)
+	assert.NoError(t, err)
 
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
 
