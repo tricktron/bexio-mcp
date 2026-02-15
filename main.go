@@ -81,28 +81,22 @@ func newMCPServer(bexio BexioClient) (*mcp.Server, error) {
 func createTimesheet(ctx context.Context, bexio BexioClient, input createTimesheetInput) (bexioTimesheet, error) {
 	var currentUserID int
 	if input.UserID == nil {
-		rawCurrentUser, err := bexio.GetCurrentUser(ctx)
+		currentUser, err := bexio.GetCurrentUser(ctx)
 		if err != nil {
 			return bexioTimesheet{}, fmt.Errorf("get current user: %w", err)
 		}
 
-		currentUserID, err = parseCurrentUserID(rawCurrentUser)
-		if err != nil {
-			return bexioTimesheet{}, fmt.Errorf("parse current user id: %w", err)
-		}
+		currentUserID = currentUser.ID
 	}
 
 	var statuses []timesheetStatus
 	if input.StatusID == nil {
-		rawStatuses, err := bexio.ListTimesheetStatuses(ctx)
+		resolvedStatuses, err := bexio.ListTimesheetStatuses(ctx)
 		if err != nil {
 			return bexioTimesheet{}, fmt.Errorf("list timesheet statuses: %w", err)
 		}
 
-		statuses, err = parseTimesheetStatuses(rawStatuses)
-		if err != nil {
-			return bexioTimesheet{}, fmt.Errorf("parse timesheet statuses: %w", err)
-		}
+		statuses = resolvedStatuses
 	}
 
 	request := resolveTimesheetDefaults(input, currentUserID, statuses)
@@ -299,22 +293,22 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) error {
 		server,
 		"list_projects",
 		"List projects in Bexio. If contact_id is provided, filters projects by that contact.",
-		func(ctx context.Context, input bexioListProjectsRequest) (any, error) {
+		func(ctx context.Context, input bexioListProjectsRequest) (listProjectsResult, error) {
 			if input.ContactID == nil {
 				projects, err := bexio.ListProjects(ctx)
 				if err != nil {
-					return nil, fmt.Errorf("list projects: %w", err)
+					return listProjectsResult{}, fmt.Errorf("list projects: %w", err)
 				}
 
-				return projects, nil
+				return listProjectsResult{Projects: projects}, nil
 			}
 
 			projects, err := bexio.SearchProjects(ctx, *input.ContactID)
 			if err != nil {
-				return nil, fmt.Errorf("search projects: %w", err)
+				return listProjectsResult{}, fmt.Errorf("search projects: %w", err)
 			}
 
-			return projects, nil
+			return listProjectsResult{Projects: projects}, nil
 		},
 		nil,
 	); err != nil {
@@ -325,13 +319,13 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) error {
 		server,
 		"list_client_services",
 		"List client services in Bexio",
-		func(ctx context.Context, _ struct{}) (any, error) {
+		func(ctx context.Context, _ struct{}) (listServicesResult, error) {
 			services, err := bexio.ListClientServices(ctx)
 			if err != nil {
-				return nil, fmt.Errorf("list client services: %w", err)
+				return listServicesResult{}, fmt.Errorf("list client services: %w", err)
 			}
 
-			return services, nil
+			return listServicesResult{Services: services}, nil
 		},
 		nil,
 	); err != nil {
@@ -342,13 +336,13 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) error {
 		server,
 		"list_packages",
 		"List work packages for a project in Bexio",
-		func(ctx context.Context, input bexioListProjectPackagesRequest) (any, error) {
+		func(ctx context.Context, input bexioListProjectPackagesRequest) (listPackagesResult, error) {
 			packages, err := bexio.ListPackages(ctx, input.ProjectID)
 			if err != nil {
-				return nil, fmt.Errorf("list packages: %w", err)
+				return listPackagesResult{}, fmt.Errorf("list packages: %w", err)
 			}
 
-			return packages, nil
+			return listPackagesResult{Packages: packages}, nil
 		},
 		nil,
 	); err != nil {
@@ -359,13 +353,13 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) error {
 		server,
 		"list_timesheet_statuses",
 		"List timesheet statuses in Bexio",
-		func(ctx context.Context, _ struct{}) (any, error) {
+		func(ctx context.Context, _ struct{}) (listStatusesResult, error) {
 			statuses, err := bexio.ListTimesheetStatuses(ctx)
 			if err != nil {
-				return nil, fmt.Errorf("list timesheet statuses: %w", err)
+				return listStatusesResult{}, fmt.Errorf("list timesheet statuses: %w", err)
 			}
 
-			return statuses, nil
+			return listStatusesResult{Statuses: statuses}, nil
 		},
 		nil,
 	); err != nil {
@@ -376,10 +370,10 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) error {
 		server,
 		"get_current_user",
 		"Get current authenticated user in Bexio",
-		func(ctx context.Context, _ struct{}) (any, error) {
+		func(ctx context.Context, _ struct{}) (bexioUser, error) {
 			currentUser, err := bexio.GetCurrentUser(ctx)
 			if err != nil {
-				return nil, fmt.Errorf("get current user: %w", err)
+				return bexioUser{}, fmt.Errorf("get current user: %w", err)
 			}
 
 			return currentUser, nil

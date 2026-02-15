@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
@@ -184,6 +183,11 @@ func TestBexioClientListContacts(t *testing.T) {
 	t.Parallel()
 
 	const responseBody = `[{"id":1,"name_1":"Acme Corp","name_2":""}]`
+	expected := []bexioContact{{
+		ID:    1,
+		Name1: "Acme Corp",
+		Name2: "",
+	}}
 
 	received := fakeBexioCapturedRequest{}
 	server := newRawResponseServer(t, &received, responseBody, nil)
@@ -197,7 +201,7 @@ func TestBexioClientListContacts(t *testing.T) {
 		Path:          "/2.0/contact",
 		Authorization: "Bearer test-token",
 	}, received)
-	assert.True(t, strings.Contains(string(result), "Acme Corp"), "result should contain contact data")
+	assert.Equal(t, expected, result)
 }
 
 func TestBexioClientSendsAcceptHeader(t *testing.T) {
@@ -223,6 +227,11 @@ func TestBexioClientListProjects(t *testing.T) {
 	t.Parallel()
 
 	const responseBody = `[{"id":501,"name":"Project Alpha","contact_id":11}]`
+	expected := []bexioProject{{
+		ID:        501,
+		Name:      "Project Alpha",
+		ContactID: 11,
+	}}
 
 	received := fakeBexioCapturedRequest{}
 	server := newRawResponseServer(t, &received, responseBody, nil)
@@ -231,12 +240,13 @@ func TestBexioClientListProjects(t *testing.T) {
 
 	result, err := client.ListProjects(context.Background())
 	assert.NoError(t, err)
+	var typedProjects []bexioProject = result
 	assert.Equal(t, fakeBexioCapturedRequest{
 		Method:        http.MethodGet,
 		Path:          "/2.0/pr_project",
 		Authorization: "Bearer test-token",
 	}, received)
-	assert.True(t, strings.Contains(string(result), "Project Alpha"), "result should contain project data")
+	assert.Equal(t, expected, typedProjects)
 }
 
 func TestBexioClientSearchProjects(t *testing.T) {
@@ -245,6 +255,11 @@ func TestBexioClientSearchProjects(t *testing.T) {
 	const responseBody = `[{"id":501,"name":"Project Alpha","contact_id":11}]`
 
 	contactID := 11
+	expected := []bexioProject{{
+		ID:        501,
+		Name:      "Project Alpha",
+		ContactID: 11,
+	}}
 	expectedSearchBody := []bexioSearchField{{Field: "contact_id", Value: "11", Criteria: "="}}
 
 	received := fakeBexioCapturedRequest{}
@@ -270,13 +285,17 @@ func TestBexioClientSearchProjects(t *testing.T) {
 		Authorization: "Bearer test-token",
 		SearchBody:    expectedSearchBody,
 	}, received)
-	assert.True(t, strings.Contains(string(result), "Project Alpha"), "result should contain project data")
+	assert.Equal(t, expected, result)
 }
 
 func TestBexioClientListClientServices(t *testing.T) {
 	t.Parallel()
 
 	const responseBody = `[{"id":77,"name":"Engineering"},{"id":78,"name":"Consulting"}]`
+	expected := []bexioService{
+		{ID: 77, Name: "Engineering"},
+		{ID: 78, Name: "Consulting"},
+	}
 
 	received := fakeBexioCapturedRequest{}
 	server := newRawResponseServer(t, &received, responseBody, nil)
@@ -290,13 +309,17 @@ func TestBexioClientListClientServices(t *testing.T) {
 		Path:          "/2.0/client_service",
 		Authorization: "Bearer test-token",
 	}, received)
-	assert.True(t, strings.Contains(string(result), "Engineering"), "result should contain client service data")
+	assert.Equal(t, expected, result)
 }
 
 func TestBexioClientListPackages(t *testing.T) {
 	t.Parallel()
 
 	const responseBody = `[{"id":61,"name":"Backend Sprint"},{"id":62,"name":"QA Run"}]`
+	expected := []bexioPackage{
+		{ID: 61, Name: "Backend Sprint"},
+		{ID: 62, Name: "QA Run"},
+	}
 
 	received := fakeBexioCapturedRequest{}
 	server := newRawResponseServer(t, &received, responseBody, nil)
@@ -310,7 +333,7 @@ func TestBexioClientListPackages(t *testing.T) {
 		Path:          "/3.0/projects/5/packages",
 		Authorization: "Bearer test-token",
 	}, received)
-	assert.True(t, strings.Contains(string(result), "Backend Sprint"), "result should contain package data")
+	assert.Equal(t, expected, result)
 }
 
 func TestBexioClientReturnsErrorOnNon2xxStatus(t *testing.T) {

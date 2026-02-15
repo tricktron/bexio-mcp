@@ -124,30 +124,70 @@ func (c BexioClient) ListContacts(ctx context.Context) ([]bexioContact, error) {
 	return contacts, nil
 }
 
-func (c BexioClient) ListProjects(ctx context.Context) (json.RawMessage, error) {
-	return c.getRaw(ctx, projectEndpoint)
+func (c BexioClient) ListProjects(ctx context.Context) ([]bexioProject, error) {
+	var projects []bexioProject
+	err := c.getAndDecode(ctx, projectEndpoint, &projects)
+	if err != nil {
+		return nil, err
+	}
+
+	return projects, nil
 }
 
-func (c BexioClient) ListClientServices(ctx context.Context) (json.RawMessage, error) {
-	return c.getRaw(ctx, clientServiceEndpoint)
+func (c BexioClient) ListClientServices(ctx context.Context) ([]bexioService, error) {
+	var services []bexioService
+	err := c.getAndDecode(ctx, clientServiceEndpoint, &services)
+	if err != nil {
+		return nil, err
+	}
+
+	return services, nil
 }
 
-func (c BexioClient) ListTimesheetStatuses(ctx context.Context) (json.RawMessage, error) {
-	return c.getRaw(ctx, timesheetStatusEndpoint)
+func (c BexioClient) ListTimesheetStatuses(ctx context.Context) ([]timesheetStatus, error) {
+	var statuses []timesheetStatus
+	err := c.getAndDecode(ctx, timesheetStatusEndpoint, &statuses)
+	if err != nil {
+		return nil, err
+	}
+
+	return statuses, nil
 }
 
-func (c BexioClient) GetCurrentUser(ctx context.Context) (json.RawMessage, error) {
-	return c.getRaw(ctx, currentUserEndpoint)
+func (c BexioClient) GetCurrentUser(ctx context.Context) (bexioUser, error) {
+	var user bexioUser
+	err := c.getAndDecode(ctx, currentUserEndpoint, &user)
+	if err != nil {
+		return bexioUser{}, err
+	}
+
+	return user, nil
 }
 
-func (c BexioClient) ListPackages(ctx context.Context, projectID int) (json.RawMessage, error) {
-	return c.getRaw(ctx, fmt.Sprintf("/3.0/projects/%d/packages", projectID))
+func (c BexioClient) ListPackages(ctx context.Context, projectID int) ([]bexioPackage, error) {
+	var packages []bexioPackage
+	err := c.getAndDecode(ctx, fmt.Sprintf("/3.0/projects/%d/packages", projectID), &packages)
+	if err != nil {
+		return nil, err
+	}
+
+	return packages, nil
 }
 
-func (c BexioClient) SearchProjects(ctx context.Context, contactID int) (json.RawMessage, error) {
+func (c BexioClient) SearchProjects(ctx context.Context, contactID int) ([]bexioProject, error) {
 	fields := []bexioSearchField{{Field: "contact_id", Value: strconv.Itoa(contactID), Criteria: "="}}
+	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, projectEndpoint+searchEndpointSuffix, fields)
+	if err != nil {
+		return nil, err
+	}
 
-	return c.postRaw(ctx, projectEndpoint+searchEndpointSuffix, fields)
+	var projects []bexioProject
+	err = c.doAndDecode(httpReq, &projects)
+	if err != nil {
+		return nil, err
+	}
+
+	return projects, nil
 }
 
 func (c BexioClient) getRaw(ctx context.Context, endpoint string) (json.RawMessage, error) {
