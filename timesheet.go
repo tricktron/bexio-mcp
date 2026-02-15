@@ -1,10 +1,12 @@
 package main
 
+type TrackingType string
+
 type trackingRange struct {
-	Type  string `json:"type"           jsonschema:"Tracking mode: 'range' for start/end times, or 'duration' for a duration value"`
-	Date  string `json:"date,omitempty" jsonschema:"Date of the entry in YYYY-MM-DD format"`
-	Start string `json:"start"          jsonschema:"Start time in HH:MM format (for range) or duration value"`
-	End   string `json:"end"            jsonschema:"End time in HH:MM format (for range tracking)"`
+	Type  TrackingType `json:"type"           jsonschema:"Tracking mode: 'range' for start/end times, or 'duration' for a duration value"`
+	Date  string       `json:"date,omitempty" jsonschema:"Date of the entry in YYYY-MM-DD format"`
+	Start string       `json:"start"          jsonschema:"Start time in HH:MM format (for range) or duration value"`
+	End   string       `json:"end"            jsonschema:"End time in HH:MM format (for range tracking)"`
 }
 
 type createTimesheetInput struct {
