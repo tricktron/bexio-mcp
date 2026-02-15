@@ -20,8 +20,13 @@ func main() {
 }
 
 func run(getenv func(string) string, stderr io.Writer) int {
-	_ = getenv
-	_ = stderr
+	token := getenv("BEXIO_API_TOKEN")
+	baseURL := getenv("BEXIO_API_BASE_URL")
+
+	if err := validateConfig(token, baseURL); err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
 
 	return 0
 }
