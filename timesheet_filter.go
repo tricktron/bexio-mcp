@@ -1,6 +1,6 @@
 package main
 
-func filterTimesheetsByDate(timesheets []bexioTimesheet, from, to string) []bexioTimesheet {
+func filterTimesheetsByDateRange(timesheets []bexioTimesheet, from, to string) []bexioTimesheet {
 	filtered := make([]bexioTimesheet, 0, len(timesheets))
 
 	for _, timesheet := range timesheets {

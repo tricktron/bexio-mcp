@@ -104,7 +104,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 				return nil, fmt.Errorf("list timesheets: %w", err)
 			}
 
-			entries = filterEntriesWithDateRange(entries, input.DateFrom, input.DateTo)
+			entries = filterTimesheetsByOptionalDateRange(entries, input.DateFrom, input.DateTo)
 
 			return entries, nil
 		},
@@ -119,14 +119,14 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 				return nil, fmt.Errorf("search timesheets: %w", err)
 			}
 
-			entries = filterEntriesWithDateRange(entries, input.DateFrom, input.DateTo)
+			entries = filterTimesheetsByOptionalDateRange(entries, input.DateFrom, input.DateTo)
 
 			return entries, nil
 		},
 	)
 }
 
-func filterEntriesWithDateRange(entries []bexioTimesheet, dateFrom, dateTo *string) []bexioTimesheet {
+func filterTimesheetsByOptionalDateRange(entries []bexioTimesheet, dateFrom, dateTo *string) []bexioTimesheet {
 	if dateFrom == nil && dateTo == nil {
 		return entries
 	}
@@ -139,7 +139,7 @@ func filterEntriesWithDateRange(entries []bexioTimesheet, dateFrom, dateTo *stri
 		to = *dateTo
 	}
 
-	return filterTimesheetsByDate(entries, from, to)
+	return filterTimesheetsByDateRange(entries, from, to)
 }
 
 func registerLookupTools(server *mcp.Server, bexio BexioClient) {

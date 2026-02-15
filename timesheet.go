@@ -45,15 +45,19 @@ type bexioSearchField struct {
 	Criteria string `json:"criteria,omitempty"`
 }
 
+type timesheetDateRangeFilter struct {
+	DateFrom *string `json:"date_from,omitempty"`
+	DateTo   *string `json:"date_to,omitempty"`
+}
+
 type bexioSearchTimesheetsRequest struct {
+	timesheetDateRangeFilter
+
 	SearchFields []bexioSearchField `json:"search_fields"`
-	DateFrom     *string            `json:"date_from,omitempty"`
-	DateTo       *string            `json:"date_to,omitempty"`
 }
 
 type bexioListTimesheetsRequest struct {
-	DateFrom *string `json:"date_from,omitempty"`
-	DateTo   *string `json:"date_to,omitempty"`
+	timesheetDateRangeFilter
 }
 
 type bexioListProjectsRequest struct {
