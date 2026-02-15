@@ -19,7 +19,7 @@ type durationTrackingJSON struct {
 	Duration string       `json:"duration,omitempty"`
 }
 
-type fullTrackingJSON trackingRange
+type trackingRangeJSON trackingRange
 
 type trackingRange struct {
 	Type     TrackingType `json:"type"               jsonschema:"Tracking mode: range or duration"`
@@ -38,7 +38,7 @@ func (t trackingRange) MarshalJSON() ([]byte, error) {
 		})
 	}
 
-	return json.Marshal(fullTrackingJSON(t))
+	return json.Marshal(trackingRangeJSON(t))
 }
 
 type createTimesheetInput struct {

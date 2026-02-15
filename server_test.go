@@ -608,7 +608,7 @@ func (api *fakeBexioAPI) captureCreateTimesheetRequest(t *testing.T, r *http.Req
 }
 
 func (api *fakeBexioAPI) lastCreateTimesheetBodyBytes() []byte {
-	return append([]byte(nil), api.lastCreateTimesheetBody...)
+	return api.lastCreateTimesheetBody
 }
 
 func parseTimesheetID(path string) (int, bool) {

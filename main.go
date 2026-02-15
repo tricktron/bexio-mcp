@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
+	"io"
 	"os"
 	"reflect"
 
@@ -15,18 +16,24 @@ import (
 const datePatternYYYYMMDD = `^\d{4}-\d{2}-\d{2}$`
 
 func main() {
-	bexio := NewBexioClient(os.Getenv("BEXIO_API_BASE_URL"), os.Getenv("BEXIO_API_TOKEN"), http.DefaultClient)
-	server, err := newMCPServer(bexio)
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "server setup error: %v\n", err)
-		os.Exit(1)
+	os.Exit(run(os.Getenv, os.Stderr))
+}
+
+func run(getenv func(string) string, stderr io.Writer) int {
+	_ = getenv
+	_ = stderr
+
+	return 0
+}
+
+func validateConfig(token, baseURL string) error {
+	_ = baseURL
+
+	if token == "" {
+		return errors.New("missing BEXIO_API_TOKEN")
 	}
 
-	err = server.Run(context.Background(), &mcp.StdioTransport{})
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "server error: %v\n", err)
-		os.Exit(1)
-	}
+	return nil
 }
 
 func newMCPServer(bexio BexioClient) (*mcp.Server, error) {
