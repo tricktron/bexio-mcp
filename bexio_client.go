@@ -80,6 +80,11 @@ func (c BexioClient) ListTimesheets(ctx context.Context) ([]bexioTimesheet, erro
 		return nil, fmt.Errorf("build request: %w", err)
 	}
 
+	q := httpReq.URL.Query()
+	q.Set("order_by", "date_desc")
+	q.Set("limit", "2000")
+	httpReq.URL.RawQuery = q.Encode()
+
 	var timesheets []bexioTimesheet
 	err = c.doAndDecode(httpReq, &timesheets)
 	if err != nil {
@@ -94,6 +99,11 @@ func (c BexioClient) SearchTimesheets(ctx context.Context, fields []bexioSearchF
 	if err != nil {
 		return nil, err
 	}
+
+	q := httpReq.URL.Query()
+	q.Set("order_by", "date_desc")
+	q.Set("limit", "2000")
+	httpReq.URL.RawQuery = q.Encode()
 
 	var timesheets []bexioTimesheet
 	err = c.doAndDecode(httpReq, &timesheets)
