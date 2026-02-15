@@ -87,15 +87,6 @@ func addTrackingDatePattern(schema *jsonschema.Schema) {
 	dateSchema.Pattern = datePatternYYYYMMDD
 }
 
-func addDatePattern(schema *jsonschema.Schema, property string) {
-	propertySchema, hasProperty := schema.Properties[property]
-	if !hasProperty || propertySchema == nil {
-		return
-	}
-
-	propertySchema.Pattern = datePatternYYYYMMDD
-}
-
 func registerTimesheetTools(server *mcp.Server, bexio BexioClient) error {
 	if err := registerTool(
 		server,
@@ -104,7 +95,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) error {
 		func(ctx context.Context, input createTimesheetInput) (any, error) {
 			return createTimesheet(ctx, bexio, input)
 		},
-		&jsonschema.ForOptions{TypeSchemas: timesheetSchemaTypeOverrides()},
+		&jsonschema.ForOptions{TypeSchemas: timesheetTypeSchemas()},
 		addTrackingDatePattern,
 	); err != nil {
 		return err
@@ -139,7 +130,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) error {
 
 			return updated, nil
 		},
-		&jsonschema.ForOptions{TypeSchemas: timesheetSchemaTypeOverrides()},
+		&jsonschema.ForOptions{TypeSchemas: timesheetTypeSchemas()},
 		addTrackingDatePattern,
 	); err != nil {
 		return err
@@ -159,10 +150,17 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) error {
 
 			return entries, nil
 		},
-		&jsonschema.ForOptions{TypeSchemas: searchSchemaTypeOverrides()},
+		&jsonschema.ForOptions{TypeSchemas: searchTypeSchemas()},
 		func(schema *jsonschema.Schema) {
-			addDatePattern(schema, "date_from")
-			addDatePattern(schema, "date_to")
+			dateFromSchema, hasDateFrom := schema.Properties["date_from"]
+			if hasDateFrom && dateFromSchema != nil {
+				dateFromSchema.Pattern = datePatternYYYYMMDD
+			}
+
+			dateToSchema, hasDateTo := schema.Properties["date_to"]
+			if hasDateTo && dateToSchema != nil {
+				dateToSchema.Pattern = datePatternYYYYMMDD
+			}
 		},
 	); err != nil {
 		return err
@@ -209,31 +207,9 @@ func filterTimesheetsByOptionalDateRange(entries []bexioTimesheet, dateFrom, dat
 	return filterTimesheetsByDateRange(entries, from, to)
 }
 
+//nolint:gocognit,funlen // Intentionally inlined tool registrations for locality.
 func registerLookupTools(server *mcp.Server, bexio BexioClient) error {
-	if err := registerListContactsTool(server, bexio); err != nil {
-		return err
-	}
-	if err := registerListProjectsTool(server, bexio); err != nil {
-		return err
-	}
-	if err := registerListClientServicesTool(server, bexio); err != nil {
-		return err
-	}
-	if err := registerListPackagesTool(server, bexio); err != nil {
-		return err
-	}
-	if err := registerListTimesheetStatusesTool(server, bexio); err != nil {
-		return err
-	}
-	if err := registerGetCurrentUserTool(server, bexio); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func registerListContactsTool(server *mcp.Server, bexio BexioClient) error {
-	return registerTool(
+	if err := registerTool(
 		server,
 		"list_contacts",
 		"List contacts in Bexio",
@@ -246,11 +222,11 @@ func registerListContactsTool(server *mcp.Server, bexio BexioClient) error {
 			return contacts, nil
 		},
 		nil,
-	)
-}
+	); err != nil {
+		return err
+	}
 
-func registerListProjectsTool(server *mcp.Server, bexio BexioClient) error {
-	return registerTool(
+	if err := registerTool(
 		server,
 		"list_projects",
 		"List projects in Bexio. If contact_id is provided, filters projects by that contact.",
@@ -272,11 +248,11 @@ func registerListProjectsTool(server *mcp.Server, bexio BexioClient) error {
 			return projects, nil
 		},
 		nil,
-	)
-}
+	); err != nil {
+		return err
+	}
 
-func registerListClientServicesTool(server *mcp.Server, bexio BexioClient) error {
-	return registerTool(
+	if err := registerTool(
 		server,
 		"list_client_services",
 		"List client services in Bexio",
@@ -289,11 +265,11 @@ func registerListClientServicesTool(server *mcp.Server, bexio BexioClient) error
 			return services, nil
 		},
 		nil,
-	)
-}
+	); err != nil {
+		return err
+	}
 
-func registerListPackagesTool(server *mcp.Server, bexio BexioClient) error {
-	return registerTool(
+	if err := registerTool(
 		server,
 		"list_packages",
 		"List work packages for a project in Bexio",
@@ -306,11 +282,11 @@ func registerListPackagesTool(server *mcp.Server, bexio BexioClient) error {
 			return packages, nil
 		},
 		nil,
-	)
-}
+	); err != nil {
+		return err
+	}
 
-func registerListTimesheetStatusesTool(server *mcp.Server, bexio BexioClient) error {
-	return registerTool(
+	if err := registerTool(
 		server,
 		"list_timesheet_statuses",
 		"List timesheet statuses in Bexio",
@@ -323,11 +299,11 @@ func registerListTimesheetStatusesTool(server *mcp.Server, bexio BexioClient) er
 			return statuses, nil
 		},
 		nil,
-	)
-}
+	); err != nil {
+		return err
+	}
 
-func registerGetCurrentUserTool(server *mcp.Server, bexio BexioClient) error {
-	return registerTool(
+	if err := registerTool(
 		server,
 		"get_current_user",
 		"Get current authenticated user in Bexio",
@@ -340,7 +316,11 @@ func registerGetCurrentUserTool(server *mcp.Server, bexio BexioClient) error {
 			return currentUser, nil
 		},
 		nil,
-	)
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func registerTool[TInput any](

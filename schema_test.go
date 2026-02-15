@@ -29,7 +29,7 @@ func TestRegisteredToolSchemasIncludeEnumConstraints(t *testing.T) {
 
 		enum, ok := typeSchema["enum"].([]any)
 		assert.True(t, ok, "tracking.type should have enum")
-		assert.Equal(t, trackingTypeEnumValues(), enum)
+		assert.Equal(t, []any{"range", "duration"}, enum)
 	})
 
 	t.Run("search_timesheets criteria enum", func(t *testing.T) {
@@ -49,7 +49,26 @@ func TestRegisteredToolSchemasIncludeEnumConstraints(t *testing.T) {
 
 		enum, ok := criteriaSchema["enum"].([]any)
 		assert.True(t, ok, "criteria should have enum")
-		assert.Equal(t, searchCriteriaEnumValues(), enum)
+		assert.Equal(t, []any{
+			"=",
+			"!=",
+			">",
+			">=",
+			"<",
+			"<=",
+			"like",
+			"not_like",
+			"is_null",
+			"not_null",
+			"in",
+			"not_in",
+			"equal",
+			"not_equal",
+			"greater_than",
+			"greater_equal",
+			"less_than",
+			"less_equal",
+		}, enum)
 	})
 
 	t.Run("search_timesheets field enum", func(t *testing.T) {
@@ -69,7 +88,7 @@ func TestRegisteredToolSchemasIncludeEnumConstraints(t *testing.T) {
 
 		enum, ok := fieldSchema["enum"].([]any)
 		assert.True(t, ok, "field should have enum")
-		assert.Equal(t, searchFieldEnumValues(), enum)
+		assert.Equal(t, []any{"id", "client_service_id", "contact_id", "user_id", "pr_project_id", "status_id"}, enum)
 	})
 
 	t.Run("search_timesheets date_from pattern", func(t *testing.T) {
