@@ -282,13 +282,13 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) error {
 		server,
 		"list_contacts",
 		"List contacts in Bexio",
-		func(ctx context.Context, _ struct{}) (any, error) {
+		func(ctx context.Context, _ struct{}) (listContactsResult, error) {
 			contacts, err := bexio.ListContacts(ctx)
 			if err != nil {
-				return nil, fmt.Errorf("list contacts: %w", err)
+				return listContactsResult{}, fmt.Errorf("list contacts: %w", err)
 			}
 
-			return contacts, nil
+			return listContactsResult{Contacts: contacts}, nil
 		},
 		nil,
 	); err != nil {

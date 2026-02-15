@@ -114,8 +114,19 @@ func (c BexioClient) SearchTimesheets(ctx context.Context, fields []bexioSearchF
 	return timesheets, nil
 }
 
-func (c BexioClient) ListContacts(ctx context.Context) (json.RawMessage, error) {
-	return c.getRaw(ctx, contactEndpoint)
+func (c BexioClient) ListContacts(ctx context.Context) ([]bexioContact, error) {
+	httpReq, err := c.newRequest(ctx, http.MethodGet, contactEndpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+
+	var contacts []bexioContact
+	err = c.doAndDecode(httpReq, &contacts)
+	if err != nil {
+		return nil, err
+	}
+
+	return contacts, nil
 }
 
 func (c BexioClient) ListProjects(ctx context.Context) (json.RawMessage, error) {
