@@ -426,3 +426,34 @@ None
 
 ### Recall Answers
 N/A
+
+---
+
+## 2026-02-15: 21-startup-validation
+
+### Acceptance Test
+- Entry: `run` startup path in `main_startup_validation_test.go`
+- Verified: empty token exits non-zero with `BEXIO_API_TOKEN`, empty base URL exits non-zero with `BEXIO_API_BASE_URL`, valid env proceeds normally
+
+### Architecture
+```mermaid
+graph TD
+    Main[main.run shell] --> Validate[validateConfig core]
+```
+
+### Functional Core
+- `validateConfig`: validates required startup env vars before server startup proceeds
+
+### Unit Tests (1)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| `validateConfig` | 1 | validates empty token returns error, validates empty base URL returns error |
+
+### Stats
+- Iterations: 3
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
