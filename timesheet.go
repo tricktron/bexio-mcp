@@ -47,6 +47,8 @@ type bexioSearchField struct {
 
 type bexioSearchTimesheetsRequest struct {
 	SearchFields []bexioSearchField `json:"search_fields"`
+	DateFrom     *string            `json:"date_from,omitempty"`
+	DateTo       *string            `json:"date_to,omitempty"`
 }
 
 type bexioListTimesheetsRequest struct {

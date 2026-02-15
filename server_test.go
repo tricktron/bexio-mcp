@@ -254,6 +254,35 @@ func TestListTimesheetsOpenEndedDateRangeAcceptance(t *testing.T) {
 	assert.Equal(t, "2026-02-02", listed[0].Date)
 }
 
+func TestSearchTimesheetsDateRangeNoResultsAcceptance(t *testing.T) {
+	// Slice: Search Timesheets by Date
+	// Given I have a timesheet on 2026-02-10, when I request timesheets from 2026-02-01 to 2026-02-05, then I receive no timesheets.
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "search_timesheets",
+		Arguments: map[string]any{
+			"search_fields": []map[string]any{
+				{"field": "user_id", "value": "42", "criteria": "="},
+			},
+			"date_from": "2026-02-01",
+			"date_to":   "2026-02-05",
+		},
+	})
+	assert.NoError(t, err)
+
+	assert.False(t, result.IsError)
+	assert.Equal(t, 1, len(result.Content))
+
+	textContent, ok := result.Content[0].(*mcp.TextContent)
+	assert.True(t, ok, "result should contain one text content item")
+
+	var listed []bexioTimesheet
+	err = json.Unmarshal([]byte(textContent.Text), &listed)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(listed))
+}
+
 func TestLookupToolsAcceptance(t *testing.T) {
 	// Slice: Lookup Tools (Contacts, Projects, Packages, Services)
 	// Given a running MCP server, when lookup tools are called, then each tool returns non-error MCP content that includes expected values.
