@@ -63,7 +63,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 	registerTool(
 		server,
 		"create_timesheet",
-		"Create a timesheet entry in Bexio",
+		"Create a timesheet entry in Bexio. If user_id is omitted, defaults to the current authenticated user. If status_id is omitted, defaults to 'Erledigt' (completed).",
 		func(ctx context.Context, input createTimesheetInput) (any, error) {
 			return createTimesheet(ctx, bexio, input)
 		},
@@ -97,7 +97,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 	registerTool(
 		server,
 		"search_timesheets",
-		"List and search timesheet entries in Bexio",
+		"Search and list timesheet entries in Bexio. If search_fields is omitted, lists all timesheets. If search_fields is provided, filters by the given field criteria. Optional date_from/date_to apply client-side date range filtering.",
 		func(ctx context.Context, input bexioSearchTimesheetsRequest) (any, error) {
 			entries, err := listOrSearchTimesheets(ctx, bexio, input.SearchFields)
 			if err != nil {
@@ -166,7 +166,7 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) {
 	registerTool(
 		server,
 		"list_projects",
-		"List projects in Bexio",
+		"List projects in Bexio. If contact_id is provided, filters projects by that contact.",
 		func(ctx context.Context, input bexioListProjectsRequest) (any, error) {
 			if input.ContactID == nil {
 				projects, err := bexio.ListProjects(ctx)

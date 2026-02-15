@@ -352,14 +352,42 @@ func TestLookupToolsAcceptance(t *testing.T) {
 	}
 }
 
+func TestToolSchemasIncludeDescriptionsAcceptance(t *testing.T) {
+	// Slice: Add jsonschema description tags to all input structs
+	// Given a running MCP server, when tools are listed, then create_timesheet and search_timesheets schemas include field descriptions.
+	env := newAcceptanceEnv(t)
+
+	listed, err := env.listTools(&mcp.ListToolsParams{})
+	assert.NoError(t, err)
+
+	createTool := mustFindToolByName(t, listed.Tools, "create_timesheet")
+	createSchema, ok := createTool.InputSchema.(map[string]any)
+	assert.True(t, ok, "create_timesheet input schema should be an object")
+	assertSchemaPropertiesHaveDescriptions(t, createSchema)
+
+	searchTool := mustFindToolByName(t, listed.Tools, "search_timesheets")
+	searchSchema, ok := searchTool.InputSchema.(map[string]any)
+	assert.True(t, ok, "search_timesheets input schema should be an object")
+
+	searchFields := mustSchemaPropertyMap(t, searchSchema, "search_fields")
+	searchItems, ok := searchFields["items"].(map[string]any)
+	assert.True(t, ok, "search_fields should define item schema")
+
+	itemProps := mustSchemaProperties(t, searchItems)
+	assertDescriptionContains(t, itemProps, "field", "filter")
+	assertDescriptionContains(t, itemProps, "value", "match")
+	assertDescriptionContains(t, itemProps, "criteria", "operator")
+}
+
 type fakeBexioAPI struct {
 	URL    string
 	server *httptest.Server
 }
 
 type acceptanceEnv struct {
-	ctx      context.Context
-	callTool func(params *mcp.CallToolParams) (*mcp.CallToolResult, error)
+	ctx       context.Context
+	callTool  func(params *mcp.CallToolParams) (*mcp.CallToolResult, error)
+	listTools func(params *mcp.ListToolsParams) (*mcp.ListToolsResult, error)
 }
 
 func newAcceptanceEnv(t *testing.T) acceptanceEnv {
@@ -394,6 +422,9 @@ func newAcceptanceEnvWith(t *testing.T, bexio BexioClient) acceptanceEnv {
 		ctx: ctx,
 		callTool: func(params *mcp.CallToolParams) (*mcp.CallToolResult, error) {
 			return clientSession.CallTool(ctx, params)
+		},
+		listTools: func(params *mcp.ListToolsParams) (*mcp.ListToolsResult, error) {
+			return clientSession.ListTools(ctx, params)
 		},
 	}
 }
@@ -628,6 +659,77 @@ func decodeRequestJSON[T any](t *testing.T, r *http.Request) T {
 	}
 
 	return payload
+}
+
+func mustFindToolByName(t *testing.T, tools []*mcp.Tool, name string) *mcp.Tool {
+	t.Helper()
+
+	for _, tool := range tools {
+		if tool.Name == name {
+			return tool
+		}
+	}
+
+	t.Fatalf("tool %q not found", name)
+	return nil
+}
+
+func assertSchemaPropertiesHaveDescriptions(t *testing.T, schema map[string]any) {
+	t.Helper()
+
+	props := mustSchemaProperties(t, schema)
+	for key, value := range props {
+		propSchema, ok := value.(map[string]any)
+		assert.True(t, ok, "property %q should be a schema object", key)
+
+		description, ok := propSchema["description"].(string)
+		assert.True(t, ok, "property %q should have description", key)
+		assert.True(t, strings.TrimSpace(description) != "", "property %q description should not be empty", key)
+
+		if nestedProps, hasNestedProps := propSchema["properties"].(map[string]any); hasNestedProps {
+			assertSchemaPropertiesHaveDescriptions(t, map[string]any{"properties": nestedProps})
+		}
+
+		if items, hasItems := propSchema["items"].(map[string]any); hasItems {
+			if _, itemsHasProps := items["properties"].(map[string]any); itemsHasProps {
+				assertSchemaPropertiesHaveDescriptions(t, items)
+			}
+		}
+	}
+}
+
+func mustSchemaProperties(t *testing.T, schema map[string]any) map[string]any {
+	t.Helper()
+
+	props, ok := schema["properties"].(map[string]any)
+	assert.True(t, ok, "schema should have properties")
+	return props
+}
+
+func mustSchemaPropertyMap(t *testing.T, schema map[string]any, property string) map[string]any {
+	t.Helper()
+
+	props := mustSchemaProperties(t, schema)
+	value, ok := props[property].(map[string]any)
+	assert.True(t, ok, "schema property %q should exist", property)
+	return value
+}
+
+func assertDescriptionContains(t *testing.T, props map[string]any, property string, needle string) {
+	t.Helper()
+
+	propSchema, ok := props[property].(map[string]any)
+	assert.True(t, ok, "schema property %q should exist", property)
+
+	description, ok := propSchema["description"].(string)
+	assert.True(t, ok, "schema property %q should have description", property)
+	assert.True(
+		t,
+		strings.Contains(strings.ToLower(description), strings.ToLower(needle)),
+		"schema property %q description should contain %q",
+		property,
+		needle,
+	)
 }
 
 type fakeBexioCapturedRequest struct {
