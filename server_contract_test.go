@@ -52,10 +52,8 @@ func contractTestEnvs(t *testing.T) []contractTestEnv {
 func discoverClientServiceID(t *testing.T, env acceptanceEnv) int {
 	t.Helper()
 
-	type service struct {
-		ID int `json:"id"`
-	}
-	services := callToolAndDecode[[]service](t, env, &mcp.CallToolParams{Name: "list_client_services"})
+	servicesResult := callToolAndDecode[listServicesResult](t, env, &mcp.CallToolParams{Name: "list_client_services"})
+	services := servicesResult.Services
 	assert.True(t, len(services) > 0, "need at least one client service")
 
 	return services[0].ID
@@ -138,12 +136,10 @@ func TestContractListClientServices(t *testing.T) {
 	// Given list_client_services runs in fake and real environments, when the tool is called, then both modes return a list of client services with valid shape.
 	for _, tc := range contractTestEnvs(t) {
 		t.Run(tc.name, func(t *testing.T) {
-			services := callToolAndDecode[[]struct {
-				ID   int    `json:"id"`
-				Name string `json:"name"`
-			}](t, tc.env, &mcp.CallToolParams{
+			servicesResult := callToolAndDecode[listServicesResult](t, tc.env, &mcp.CallToolParams{
 				Name: "list_client_services",
 			})
+			services := servicesResult.Services
 
 			assert.True(t, len(services) > 0, "should return at least one client service")
 
@@ -159,13 +155,10 @@ func TestContractListContacts(t *testing.T) {
 	// Given list_contacts runs in fake and real environments, when the tool is called, then both modes return a list of contacts with valid shape.
 	for _, tc := range contractTestEnvs(t) {
 		t.Run(tc.name, func(t *testing.T) {
-			contacts := callToolAndDecode[[]struct {
-				ID    int    `json:"id"`
-				Name1 string `json:"name_1"`
-				Name2 string `json:"name_2"`
-			}](t, tc.env, &mcp.CallToolParams{
+			contactsResult := callToolAndDecode[listContactsResult](t, tc.env, &mcp.CallToolParams{
 				Name: "list_contacts",
 			})
+			contacts := contactsResult.Contacts
 
 			assert.True(t, len(contacts) > 0, "should return at least one contact")
 

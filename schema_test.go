@@ -184,7 +184,7 @@ func TestRegisteredToolSchemasIncludeEnumConstraints(t *testing.T) {
 
 func TestTimesheetToolsExposeOutputSchemasInListAcceptance(t *testing.T) {
 	// Slice: Typed output schemas for timesheet tools
-	// Given the MCP server is running, when a client calls tools/list, then timesheet tools expose expected output schema properties and list_contacts keeps nil output schema.
+	// Given the MCP server is running, when a client calls tools/list, then timesheet tools expose expected output schema properties.
 	t.Parallel()
 
 	env := newAcceptanceEnv(t)
@@ -248,9 +248,4 @@ func TestTimesheetToolsExposeOutputSchemasInListAcceptance(t *testing.T) {
 			}
 		})
 	}
-
-	t.Run("list_contacts has nil output schema", func(t *testing.T) {
-		lookupTool := mustFindToolByName(t, listed.Tools, "list_contacts")
-		assert.Equal(t, nil, lookupTool.OutputSchema)
-	})
 }

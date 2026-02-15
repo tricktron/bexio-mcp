@@ -404,6 +404,101 @@ func TestLookupToolsAcceptance(t *testing.T) {
 	}
 }
 
+func TestLookupToolsReturnTypedStructuredResponsesAcceptance(t *testing.T) {
+	// Slice: Typed output schemas for lookup tools
+	// Given lookup tools are called via MCP, when each response is decoded into a typed shape, then known fields match fake API fixtures.
+	t.Parallel()
+
+	t.Run("list_contacts", func(t *testing.T) {
+		t.Parallel()
+		env := newAcceptanceEnv(t)
+
+		response := callToolAndDecode[listContactsResult](t, env, &mcp.CallToolParams{Name: "list_contacts"})
+
+		assert.Equal(t, listContactsResult{
+			Contacts: []bexioContact{
+				{ID: 11, Name1: "Acme Corp"},
+				{ID: 12, Name1: "Globex Inc"},
+			},
+		}, response)
+	})
+
+	t.Run("list_projects", func(t *testing.T) {
+		t.Parallel()
+		env := newAcceptanceEnv(t)
+
+		response := callToolAndDecode[listProjectsResult](t, env, &mcp.CallToolParams{
+			Name:      "list_projects",
+			Arguments: map[string]any{"contact_id": 11},
+		})
+
+		assert.Equal(t, listProjectsResult{
+			Projects: []bexioProject{
+				{ID: 501, Name: "Project Alpha", ContactID: 11},
+			},
+		}, response)
+	})
+
+	t.Run("list_client_services", func(t *testing.T) {
+		t.Parallel()
+		env := newAcceptanceEnv(t)
+
+		response := callToolAndDecode[listServicesResult](t, env, &mcp.CallToolParams{Name: "list_client_services"})
+
+		assert.Equal(t, listServicesResult{
+			Services: []bexioService{
+				{ID: 77, Name: "Engineering"},
+				{ID: 78, Name: "Consulting"},
+			},
+		}, response)
+	})
+
+	t.Run("list_packages", func(t *testing.T) {
+		t.Parallel()
+		env := newAcceptanceEnv(t)
+
+		response := callToolAndDecode[listPackagesResult](t, env, &mcp.CallToolParams{
+			Name:      "list_packages",
+			Arguments: map[string]any{"project_id": 5},
+		})
+
+		assert.Equal(t, listPackagesResult{
+			Packages: []bexioPackage{
+				{ID: 61, Name: "Backend Sprint"},
+				{ID: 62, Name: "QA Run"},
+			},
+		}, response)
+	})
+
+	t.Run("list_timesheet_statuses", func(t *testing.T) {
+		t.Parallel()
+		env := newAcceptanceEnv(t)
+
+		response := callToolAndDecode[listStatusesResult](t, env, &mcp.CallToolParams{Name: "list_timesheet_statuses"})
+
+		assert.Equal(t, listStatusesResult{
+			Statuses: []timesheetStatus{
+				{ID: 1, Name: "Offen"},
+				{ID: 2, Name: "Erledigt"},
+			},
+		}, response)
+	})
+
+	t.Run("get_current_user", func(t *testing.T) {
+		t.Parallel()
+		env := newAcceptanceEnv(t)
+
+		response := callToolAndDecode[bexioUser](t, env, &mcp.CallToolParams{Name: "get_current_user"})
+
+		assert.Equal(t, bexioUser{
+			ID:        4,
+			FirstName: "Rudolph",
+			LastName:  "Smith",
+			Email:     "rudolph.smith@example.com",
+		}, response)
+	})
+}
+
 func TestToolSchemasIncludeDescriptionsAcceptance(t *testing.T) {
 	// Slice: Add jsonschema description tags to all input structs
 	// Given a running MCP server, when tools are listed, then create_timesheet and search_timesheets schemas include field descriptions.
