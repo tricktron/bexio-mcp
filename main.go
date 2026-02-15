@@ -27,10 +27,12 @@ func run(getenv func(string) string, stderr io.Writer) int {
 }
 
 func validateConfig(token, baseURL string) error {
-	_ = baseURL
-
 	if token == "" {
 		return errors.New("missing BEXIO_API_TOKEN")
+	}
+
+	if baseURL == "" {
+		return errors.New("missing BEXIO_API_BASE_URL")
 	}
 
 	return nil
