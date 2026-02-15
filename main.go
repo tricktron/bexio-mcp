@@ -97,15 +97,20 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 	registerTool(
 		server,
 		"search_timesheets",
-		"Search timesheet entries in Bexio",
+		"List and search timesheet entries in Bexio",
 		func(ctx context.Context, input bexioSearchTimesheetsRequest) (any, error) {
-			var entries []bexioTimesheet
-			var err error
 			if len(input.SearchFields) == 0 {
-				entries, err = bexio.ListTimesheets(ctx)
-			} else {
-				entries, err = bexio.SearchTimesheets(ctx, input.SearchFields)
+				entries, err := bexio.ListTimesheets(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("list timesheets: %w", err)
+				}
+
+				entries = filterTimesheetsByOptionalDateRange(entries, input.DateFrom, input.DateTo)
+
+				return entries, nil
 			}
+
+			entries, err := bexio.SearchTimesheets(ctx, input.SearchFields)
 			if err != nil {
 				return nil, fmt.Errorf("search timesheets: %w", err)
 			}
