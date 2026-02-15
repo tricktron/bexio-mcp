@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"reflect"
 
@@ -16,14 +17,36 @@ import (
 const datePatternYYYYMMDD = `^\d{4}-\d{2}-\d{2}$`
 
 func main() {
-	os.Exit(run(os.Getenv, os.Stderr))
+	os.Exit(run(os.Getenv, os.Stderr, &mcp.StdioTransport{}))
 }
 
-func run(getenv func(string) string, stderr io.Writer) int {
+func run(getenv func(string) string, stderr io.Writer, transport mcp.Transport) int {
 	token := getenv("BEXIO_API_TOKEN")
 	baseURL := getenv("BEXIO_API_BASE_URL")
 
 	if err := validateConfig(token, baseURL); err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	if transport == nil {
+		return 0
+	}
+
+	bexio := NewBexioClient(baseURL, token, http.DefaultClient)
+	server, err := newMCPServer(bexio)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	session, err := server.Connect(context.Background(), transport, nil)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	if err := session.Wait(); err != nil {
 		fmt.Fprintf(stderr, "%v\n", err)
 		return 1
 	}
