@@ -84,4 +84,34 @@ func TestRegisteredToolSchemasIncludeEnumConstraints(t *testing.T) {
 		assert.True(t, ok, "date_from should have pattern")
 		assert.Equal(t, `^\d{4}-\d{2}-\d{2}$`, pattern)
 	})
+
+	t.Run("search_timesheets date_to pattern", func(t *testing.T) {
+		t.Parallel()
+
+		searchTool := mustFindToolByName(t, listed.Tools, "search_timesheets")
+		searchSchema, ok := searchTool.InputSchema.(map[string]any)
+		assert.True(t, ok)
+
+		dateToSchema := mustSchemaPropertyMap(t, searchSchema, "date_to")
+		pattern, ok := dateToSchema["pattern"].(string)
+		assert.True(t, ok, "date_to should have pattern")
+		assert.Equal(t, `^\d{4}-\d{2}-\d{2}$`, pattern)
+	})
+
+	t.Run("create_timesheet tracking.date pattern", func(t *testing.T) {
+		t.Parallel()
+
+		createTool := mustFindToolByName(t, listed.Tools, "create_timesheet")
+		createSchema, ok := createTool.InputSchema.(map[string]any)
+		assert.True(t, ok)
+
+		trackingSchema := mustSchemaPropertyMap(t, createSchema, "tracking")
+		trackingProps := mustSchemaProperties(t, trackingSchema)
+		dateSchema, ok := trackingProps["date"].(map[string]any)
+		assert.True(t, ok, "tracking.date should be a schema object")
+
+		pattern, ok := dateSchema["pattern"].(string)
+		assert.True(t, ok, "tracking.date should have pattern")
+		assert.Equal(t, `^\d{4}-\d{2}-\d{2}$`, pattern)
+	})
 }

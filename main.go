@@ -12,6 +12,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+const datePatternYYYYMMDD = `^\d{4}-\d{2}-\d{2}$`
+
 func main() {
 	bexio := NewBexioClient(os.Getenv("BEXIO_API_BASE_URL"), os.Getenv("BEXIO_API_TOKEN"), http.DefaultClient)
 	server := newMCPServer(bexio)
@@ -61,6 +63,20 @@ func createTimesheet(ctx context.Context, bexio BexioClient, input createTimeshe
 	return bexio.CreateTimesheet(ctx, request)
 }
 
+func addTrackingDatePattern(schema *jsonschema.Schema) {
+	tracking, hasTracking := schema.Properties["tracking"]
+	if !hasTracking || tracking == nil {
+		return
+	}
+
+	dateSchema, hasDate := tracking.Properties["date"]
+	if !hasDate || dateSchema == nil {
+		return
+	}
+
+	dateSchema.Pattern = datePatternYYYYMMDD
+}
+
 func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 	registerTool(
 		server,
@@ -70,6 +86,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 			return createTimesheet(ctx, bexio, input)
 		},
 		&jsonschema.ForOptions{TypeSchemas: timesheetTypeSchemas()},
+		addTrackingDatePattern,
 	)
 	registerTool(
 		server,
@@ -98,6 +115,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 			return updated, nil
 		},
 		&jsonschema.ForOptions{TypeSchemas: timesheetTypeSchemas()},
+		addTrackingDatePattern,
 	)
 	registerTool(
 		server,
@@ -115,12 +133,11 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 		},
 		&jsonschema.ForOptions{TypeSchemas: searchTypeSchemas()},
 		func(schema *jsonschema.Schema) {
-			datePattern := `^\d{4}-\d{2}-\d{2}$`
 			if dateFromSchema, ok := schema.Properties["date_from"]; ok && dateFromSchema != nil {
-				dateFromSchema.Pattern = datePattern
+				dateFromSchema.Pattern = datePatternYYYYMMDD
 			}
 			if dateToSchema, ok := schema.Properties["date_to"]; ok && dateToSchema != nil {
-				dateToSchema.Pattern = datePattern
+				dateToSchema.Pattern = datePatternYYYYMMDD
 			}
 		},
 	)
