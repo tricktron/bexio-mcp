@@ -71,4 +71,17 @@ func TestRegisteredToolSchemasIncludeEnumConstraints(t *testing.T) {
 		assert.True(t, ok, "field should have enum")
 		assert.Equal(t, 6, len(enum))
 	})
+
+	t.Run("search_timesheets date_from pattern", func(t *testing.T) {
+		t.Parallel()
+
+		searchTool := mustFindToolByName(t, listed.Tools, "search_timesheets")
+		searchSchema, ok := searchTool.InputSchema.(map[string]any)
+		assert.True(t, ok)
+
+		dateFromSchema := mustSchemaPropertyMap(t, searchSchema, "date_from")
+		pattern, ok := dateFromSchema["pattern"].(string)
+		assert.True(t, ok, "date_from should have pattern")
+		assert.Equal(t, `^\d{4}-\d{2}-\d{2}$`, pattern)
+	})
 }

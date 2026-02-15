@@ -114,6 +114,15 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 			return entries, nil
 		},
 		&jsonschema.ForOptions{TypeSchemas: searchTypeSchemas()},
+		func(schema *jsonschema.Schema) {
+			datePattern := `^\d{4}-\d{2}-\d{2}$`
+			if dateFromSchema, ok := schema.Properties["date_from"]; ok && dateFromSchema != nil {
+				dateFromSchema.Pattern = datePattern
+			}
+			if dateToSchema, ok := schema.Properties["date_to"]; ok && dateToSchema != nil {
+				dateToSchema.Pattern = datePattern
+			}
+		},
 	)
 }
 
@@ -257,6 +266,7 @@ func registerTool[TInput any](
 	description string,
 	handler func(ctx context.Context, input TInput) (any, error),
 	schemaOpts *jsonschema.ForOptions,
+	schemaMutate ...func(*jsonschema.Schema),
 ) {
 	tool := &mcp.Tool{
 		Name:        name,
@@ -266,6 +276,11 @@ func registerTool[TInput any](
 	if schemaOpts != nil {
 		schema, err := jsonschema.ForType(reflect.TypeFor[TInput](), schemaOpts)
 		if err == nil {
+			for _, mutate := range schemaMutate {
+				if mutate != nil {
+					mutate(schema)
+				}
+			}
 			tool.InputSchema = schema
 		}
 	}
