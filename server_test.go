@@ -633,6 +633,7 @@ func decodeRequestJSON[T any](t *testing.T, r *http.Request) T {
 type fakeBexioCapturedRequest struct {
 	Method        string
 	Path          string
+	Query         string
 	Authorization string
 	Body          bexioCreateTimesheetRequest
 	SearchBody    []bexioSearchField

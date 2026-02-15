@@ -145,6 +145,7 @@ func TestBexioClientListTimesheets(t *testing.T) {
 	assert.Equal(t, fakeBexioCapturedRequest{
 		Method:        http.MethodGet,
 		Path:          "/2.0/timesheet",
+		Query:         "limit=2000&order_by=date_desc",
 		Authorization: "Bearer test-token",
 	}, received)
 	assert.Equal(t, expected, result)
@@ -172,6 +173,7 @@ func TestBexioClientSearchTimesheets(t *testing.T) {
 	assert.Equal(t, fakeBexioCapturedRequest{
 		Method:        http.MethodPost,
 		Path:          "/2.0/timesheet/search",
+		Query:         "limit=2000&order_by=date_desc",
 		Authorization: "Bearer test-token",
 		SearchBody:    searchFields,
 	}, received)
@@ -365,6 +367,7 @@ func newRawResponseServer(
 		captured := fakeBexioCapturedRequest{
 			Method:        r.Method,
 			Path:          r.URL.Path,
+			Query:         r.URL.RawQuery,
 			Authorization: r.Header.Get("Authorization"),
 		}
 
