@@ -41,13 +41,13 @@ N/A
 ### Architecture
 ```mermaid
 graph TD
-    Register[registerTool] --> SchemaOverrides[schema_types.go]
+    Register[registerTool] --> SchemaOverrides[timesheet.go]
     SchemaOverrides --> Tools[MCP tool InputSchema]
 ```
 
 ### Functional Core
-- `timesheetSchemaTypeOverrides`: central enum constraints for timesheet write-path types
-- `searchSchemaTypeOverrides`: central enum constraints for search field/criteria types
+- `timesheetTypeSchemas`: central enum constraints for timesheet write-path types
+- `searchTypeSchemas`: central enum constraints for search field/criteria types
 
 ### Unit Tests (1)
 | Component | Tests | Behaviors |
