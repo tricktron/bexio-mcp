@@ -32,6 +32,48 @@ N/A
 
 ---
 
+## 2026-02-15: Search Timesheets by Date
+
+### Acceptance Tests
+| Test | Verifies |
+| ---- | -------- |
+| TestListTimesheetsDateRangeFilterAcceptance | list_timesheets with date_from+date_to returns only matching entries |
+| TestListTimesheetsOpenEndedDateRangeAcceptance | list_timesheets with only date_from returns entries from that date onward |
+| TestSearchTimesheetsDateRangeNoResultsAcceptance | search_timesheets with date range excluding all entries returns empty list |
+
+### Architecture
+```mermaid
+graph TD
+    MCP[list_timesheets / search_timesheets] --> Filter[filterTimesheetsByOptionalDateRange]
+    Filter --> Core[filterTimesheetsByDateRange]
+    MCP --> BexioClient
+    BexioClient --> API[(bexio API)]
+```
+
+### Core Classes Discovered
+- `filterTimesheetsByDateRange` — pure function: inclusive date filtering with open-ended bounds (empty string = no bound)
+- `filterTimesheetsByOptionalDateRange` — nil-safe Shell wrapper
+- `timesheetDateRangeFilter` — shared embedded struct for DateFrom/DateTo input fields
+
+### Unit Tests
+| Test | Component | Behavior |
+| ---- | --------- | -------- |
+| TestFilterTimesheetsByDate/inclusive range | filterTimesheetsByDateRange | Both bounds set, returns only matching |
+| TestFilterTimesheetsByDate/from only | filterTimesheetsByDateRange | Open upper bound |
+| TestFilterTimesheetsByDate/to only | filterTimesheetsByDateRange | Open lower bound |
+| TestFilterTimesheetsByDate/both empty | filterTimesheetsByDateRange | No bounds, returns all |
+
+### Stats
+- Iterations: 3 (AC1 → AC3 → AC2)
+
+### Discoveries
+None
+
+### Recall Answers
+Skipped
+
+---
+
 ## 2026-02-14: Real API Contract Tests (Environment-Polymorphic)
 
 ### Acceptance Test
