@@ -204,12 +204,14 @@ func TestSearchTimesheetsNoArgsReturnsAllAcceptance(t *testing.T) {
 	textContent, ok := result.Content[0].(*mcp.TextContent)
 	assert.True(t, ok, "result should contain one text content item")
 
-	var listed []bexioTimesheet
+	var listed struct {
+		Results []bexioTimesheet `json:"results"`
+	}
 	err = json.Unmarshal([]byte(textContent.Text), &listed)
 	assert.NoError(t, err)
-	assert.True(t, len(listed) >= 2, "result should contain at least two timesheet entries")
+	assert.True(t, len(listed.Results) >= 2, "result should contain at least two timesheet entries")
 
-	first := listed[0]
+	first := listed.Results[0]
 	assert.Equal(t, 801, first.ID)
 	assert.Equal(t, "list-entry-1", first.Text)
 	assert.Equal(t, "2026-02-01 09:00:00", first.Tracking.Start)
@@ -265,11 +267,13 @@ func TestSearchTimesheetsDateRangeFilterAcceptance(t *testing.T) {
 	textContent, ok := result.Content[0].(*mcp.TextContent)
 	assert.True(t, ok, "result should contain one text content item")
 
-	var listed []bexioTimesheet
+	var listed struct {
+		Results []bexioTimesheet `json:"results"`
+	}
 	err = json.Unmarshal([]byte(textContent.Text), &listed)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(listed))
-	assert.Equal(t, "2026-02-02", listed[0].Date)
+	assert.Equal(t, 1, len(listed.Results))
+	assert.Equal(t, "2026-02-02", listed.Results[0].Date)
 }
 
 func TestSearchTimesheetsOpenEndedDateRangeAcceptance(t *testing.T) {
@@ -291,11 +295,13 @@ func TestSearchTimesheetsOpenEndedDateRangeAcceptance(t *testing.T) {
 	textContent, ok := result.Content[0].(*mcp.TextContent)
 	assert.True(t, ok, "result should contain one text content item")
 
-	var listed []bexioTimesheet
+	var listed struct {
+		Results []bexioTimesheet `json:"results"`
+	}
 	err = json.Unmarshal([]byte(textContent.Text), &listed)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(listed))
-	assert.Equal(t, "2026-02-02", listed[0].Date)
+	assert.Equal(t, 1, len(listed.Results))
+	assert.Equal(t, "2026-02-02", listed.Results[0].Date)
 }
 
 func TestSearchTimesheetsDateRangeNoResultsAcceptance(t *testing.T) {
@@ -321,10 +327,12 @@ func TestSearchTimesheetsDateRangeNoResultsAcceptance(t *testing.T) {
 	textContent, ok := result.Content[0].(*mcp.TextContent)
 	assert.True(t, ok, "result should contain one text content item")
 
-	var listed []bexioTimesheet
+	var listed struct {
+		Results []bexioTimesheet `json:"results"`
+	}
 	err = json.Unmarshal([]byte(textContent.Text), &listed)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(listed))
+	assert.Equal(t, 0, len(listed.Results))
 }
 
 func TestLookupToolsAcceptance(t *testing.T) {
