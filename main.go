@@ -79,12 +79,35 @@ func addTrackingDatePattern(schema *jsonschema.Schema) {
 		return
 	}
 
+	tracking.Required = filterRequiredProperties(tracking.Required, "start", "end")
+
 	dateSchema, hasDate := tracking.Properties["date"]
 	if !hasDate || dateSchema == nil {
 		return
 	}
 
 	dateSchema.Pattern = datePatternYYYYMMDD
+}
+
+func filterRequiredProperties(required []string, skip ...string) []string {
+	if len(required) == 0 || len(skip) == 0 {
+		return required
+	}
+
+	skipSet := make(map[string]struct{}, len(skip))
+	for _, key := range skip {
+		skipSet[key] = struct{}{}
+	}
+
+	filtered := required[:0]
+	for _, key := range required {
+		if _, shouldSkip := skipSet[key]; shouldSkip {
+			continue
+		}
+		filtered = append(filtered, key)
+	}
+
+	return filtered
 }
 
 func registerTimesheetTools(server *mcp.Server, bexio BexioClient) error {

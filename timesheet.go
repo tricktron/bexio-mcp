@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"reflect"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -11,10 +12,31 @@ type SearchField string
 type SearchCriteria string
 
 type trackingRange struct {
-	Type  TrackingType `json:"type"           jsonschema:"Tracking mode: 'range' for start/end times, or 'duration' for a duration value"`
-	Date  string       `json:"date,omitempty" jsonschema:"Date of the entry in YYYY-MM-DD format"`
-	Start string       `json:"start"          jsonschema:"Start time in HH:MM format (for range) or duration value"`
-	End   string       `json:"end"            jsonschema:"End time in HH:MM format (for range tracking)"`
+	Type     TrackingType `json:"type"               jsonschema:"Tracking mode: range or duration"`
+	Date     string       `json:"date,omitempty"     jsonschema:"Date of the entry in YYYY-MM-DD format"`
+	Duration string       `json:"duration,omitempty" jsonschema:"Duration in HH:MM format (for duration tracking)"`
+	Start    string       `json:"start"              jsonschema:"Start time in HH:MM format (for range) or duration value"`
+	End      string       `json:"end"                jsonschema:"End time in HH:MM format (for range tracking)"`
+}
+
+func (t trackingRange) MarshalJSON() ([]byte, error) {
+	if t.Type == "duration" {
+		type durationTrackingRange struct {
+			Type     TrackingType `json:"type"`
+			Date     string       `json:"date,omitempty"`
+			Duration string       `json:"duration,omitempty"`
+		}
+
+		return json.Marshal(durationTrackingRange{
+			Type:     t.Type,
+			Date:     t.Date,
+			Duration: t.Duration,
+		})
+	}
+
+	type fullTrackingRange trackingRange
+
+	return json.Marshal(fullTrackingRange(t))
 }
 
 type createTimesheetInput struct {

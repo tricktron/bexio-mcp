@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
-
 	"testing"
 	"time"
 
@@ -66,6 +66,50 @@ func TestCreateTimesheetAutoResolveDefaultsAcceptance(t *testing.T) {
 
 	assert.False(t, result.IsError)
 	assert.True(t, len(result.Content) > 0, "result should have content")
+}
+
+func TestCreateTimesheetDurationTrackingAcceptance(t *testing.T) {
+	// Slice: Support duration tracking type
+	// Given an MCP client calls create_timesheet with duration tracking, when the handler sends the request to Bexio, then the payload includes type/date/duration and omits start/end.
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "create_timesheet",
+		Arguments: map[string]any{
+			"user_id":           42,
+			"allowable_bill":    true,
+			"client_service_id": 99,
+			"text":              "Track by duration",
+			"tracking": map[string]any{
+				"type":     "duration",
+				"date":     "2026-02-08",
+				"duration": "01:30",
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.False(t, result.IsError)
+
+	rawBody := env.fakeAPI.lastCreateTimesheetBodyBytes()
+	assert.True(t, len(rawBody) > 0, "fake Bexio API should capture POST /2.0/timesheet request body")
+
+	var sentPayload map[string]any
+	err = json.Unmarshal(rawBody, &sentPayload)
+	assert.NoError(t, err)
+
+	tracking, ok := sentPayload["tracking"].(map[string]any)
+	assert.True(t, ok, "request payload should include tracking object")
+
+	assert.Equal(t, "duration", tracking["type"])
+	assert.Equal(t, "2026-02-08", tracking["date"])
+	duration, hasDuration := tracking["duration"]
+	assert.True(t, hasDuration, "duration tracking payload should include tracking.duration")
+	assert.Equal(t, "01:30", duration)
+
+	_, hasStart := tracking["start"]
+	_, hasEnd := tracking["end"]
+	assert.False(t, hasStart, "duration tracking payload should not include tracking.start")
+	assert.False(t, hasEnd, "duration tracking payload should not include tracking.end")
 }
 
 func TestDeleteTimesheetAcceptance(t *testing.T) {
@@ -380,14 +424,16 @@ func TestToolSchemasIncludeDescriptionsAcceptance(t *testing.T) {
 }
 
 type fakeBexioAPI struct {
-	URL    string
-	server *httptest.Server
+	URL                     string
+	server                  *httptest.Server
+	lastCreateTimesheetBody []byte
 }
 
 type acceptanceEnv struct {
 	ctx       context.Context
 	callTool  func(params *mcp.CallToolParams) (*mcp.CallToolResult, error)
 	listTools func(params *mcp.ListToolsParams) (*mcp.ListToolsResult, error)
+	fakeAPI   *fakeBexioAPI
 }
 
 func newAcceptanceEnv(t *testing.T) acceptanceEnv {
@@ -395,8 +441,10 @@ func newAcceptanceEnv(t *testing.T) acceptanceEnv {
 
 	fakeAPI := startFakeBexioAPI(t)
 	bexio := NewBexioClient(fakeAPI.URL, "test-token", http.DefaultClient)
+	env := newAcceptanceEnvWith(t, bexio)
+	env.fakeAPI = fakeAPI
 
-	return newAcceptanceEnvWith(t, bexio)
+	return env
 }
 
 func newAcceptanceEnvWith(t *testing.T, bexio BexioClient) acceptanceEnv {
@@ -427,6 +475,7 @@ func newAcceptanceEnvWith(t *testing.T, bexio BexioClient) acceptanceEnv {
 		listTools: func(params *mcp.ListToolsParams) (*mcp.ListToolsResult, error) {
 			return clientSession.ListTools(ctx, params)
 		},
+		fakeAPI: nil,
 	}
 }
 
@@ -436,7 +485,7 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 	api := &fakeBexioAPI{}
 	exactHandlers := map[string]http.HandlerFunc{
 		http.MethodPost + " /2.0/timesheet": func(w http.ResponseWriter, r *http.Request) {
-			reqBody := decodeRequestJSON[bexioCreateTimesheetRequest](t, r)
+			reqBody := api.captureCreateTimesheetRequest(t, r)
 			writeJSONResponse(t, w, http.StatusCreated, buildTimesheet(777, reqBody))
 		},
 		http.MethodGet + " /2.0/timesheet": func(w http.ResponseWriter, _ *http.Request) {
@@ -541,6 +590,25 @@ func handleTimesheetByIDRoutes(t *testing.T, w http.ResponseWriter, r *http.Requ
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return true
 	}
+}
+
+func (api *fakeBexioAPI) captureCreateTimesheetRequest(t *testing.T, r *http.Request) bexioCreateTimesheetRequest {
+	t.Helper()
+
+	rawBody, err := io.ReadAll(r.Body)
+	assert.NoError(t, err)
+
+	api.lastCreateTimesheetBody = append(api.lastCreateTimesheetBody[:0], rawBody...)
+
+	var reqBody bexioCreateTimesheetRequest
+	err = json.Unmarshal(rawBody, &reqBody)
+	assert.NoError(t, err)
+
+	return reqBody
+}
+
+func (api *fakeBexioAPI) lastCreateTimesheetBodyBytes() []byte {
+	return api.lastCreateTimesheetBody
 }
 
 func parseTimesheetID(path string) (int, bool) {
