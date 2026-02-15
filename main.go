@@ -110,6 +110,20 @@ func createTimesheet(ctx context.Context, bexio BexioClient, input createTimeshe
 	return bexio.CreateTimesheet(ctx, request)
 }
 
+func deleteTimesheet(ctx context.Context, bexio BexioClient, id int) (deleteTimesheetResult, error) {
+	deleted, err := bexio.DeleteTimesheet(ctx, id)
+	if err != nil {
+		return deleteTimesheetResult{}, fmt.Errorf("delete timesheet: %w", err)
+	}
+
+	var result deleteTimesheetResult
+	if parseErr := json.Unmarshal(deleted, &result); parseErr != nil {
+		return deleteTimesheetResult{}, fmt.Errorf("parse delete result: %w", parseErr)
+	}
+
+	return result, nil
+}
+
 func addTrackingDatePattern(schema *jsonschema.Schema) {
 	tracking, hasTracking := schema.Properties["tracking"]
 	if !hasTracking || tracking == nil {
@@ -166,17 +180,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) error {
 		"delete_timesheet",
 		"Delete a timesheet entry in Bexio",
 		func(ctx context.Context, input bexioDeleteTimesheetRequest) (deleteTimesheetResult, error) {
-			deleted, err := bexio.DeleteTimesheet(ctx, input.ID)
-			if err != nil {
-				return deleteTimesheetResult{}, fmt.Errorf("delete timesheet: %w", err)
-			}
-
-			var result deleteTimesheetResult
-			if parseErr := json.Unmarshal(deleted, &result); parseErr != nil {
-				return deleteTimesheetResult{}, fmt.Errorf("parse delete result: %w", parseErr)
-			}
-
-			return result, nil
+			return deleteTimesheet(ctx, bexio, input.ID)
 		},
 		nil,
 	); err != nil {

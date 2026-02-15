@@ -32,6 +32,39 @@ N/A
 
 ---
 
+## 2026-02-15: Typed output schemas for timesheet tools
+
+### Acceptance Test
+- Entry: MCP `tools/list` plus timesheet tool calls in `server_test.go`
+- Verified: typed timesheet tools expose object output schemas and return object-shaped responses compatible with SDK marshaling
+
+### Architecture
+```mermaid
+graph TD
+    Register[registerTool[TInput, TOutput]] --> AddTool[mcp.AddTool[TInput, TOutput]]
+    AddTool --> OutputSchema[SDK-generated outputSchema + marshaling]
+```
+
+### Functional Core
+- `deleteTimesheetResult`: typed delete result envelope (`success`)
+- `searchTimesheetsResult`: typed search result envelope (`results`)
+
+### Unit Tests (2)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| Typed result schemas | 2 | `TestTimesheetResultTypesMarshalAsWrappedObjects`, `TestRegisterToolExposesOutputSchemaForTypedResult` validate object-shaped typed outputs and schema exposure |
+
+### Stats
+- Iterations: 2
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+---
+
 ## 2026-02-15: 25-wire-run-startup
 
 ### Acceptance Test
