@@ -51,7 +51,7 @@ func (c BexioClient) postTimesheet(
 	endpoint string,
 	req bexioCreateTimesheetRequest,
 ) (bexioTimesheet, error) {
-	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, endpoint, req)
+	httpReq, err := c.newJSONRequest(ctx, endpoint, req)
 	if err != nil {
 		return bexioTimesheet{}, err
 	}
@@ -95,7 +95,7 @@ func (c BexioClient) ListTimesheets(ctx context.Context) ([]bexioTimesheet, erro
 }
 
 func (c BexioClient) SearchTimesheets(ctx context.Context, fields []bexioSearchField) ([]bexioTimesheet, error) {
-	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, timesheetEndpoint+searchEndpointSuffix, fields)
+	httpReq, err := c.newJSONRequest(ctx, timesheetEndpoint+searchEndpointSuffix, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func (c BexioClient) ListPackages(ctx context.Context, projectID int) ([]bexioPa
 
 func (c BexioClient) SearchProjects(ctx context.Context, contactID int) ([]bexioProject, error) {
 	fields := []bexioSearchField{{Field: "contact_id", Value: strconv.Itoa(contactID), Criteria: "="}}
-	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, projectEndpoint+searchEndpointSuffix, fields)
+	httpReq, err := c.newJSONRequest(ctx, projectEndpoint+searchEndpointSuffix, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -188,24 +188,6 @@ func (c BexioClient) SearchProjects(ctx context.Context, contactID int) ([]bexio
 	}
 
 	return projects, nil
-}
-
-func (c BexioClient) getRaw(ctx context.Context, endpoint string) (json.RawMessage, error) {
-	httpReq, err := c.newRequest(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
-	}
-
-	return c.readRawResponse(httpReq)
-}
-
-func (c BexioClient) postRaw(ctx context.Context, endpoint string, payload any) (json.RawMessage, error) {
-	httpReq, err := c.newJSONRequest(ctx, http.MethodPost, endpoint, payload)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.readRawResponse(httpReq)
 }
 
 func (c BexioClient) readRawResponse(httpReq *http.Request) (json.RawMessage, error) {
@@ -223,13 +205,13 @@ func (c BexioClient) readRawResponse(httpReq *http.Request) (json.RawMessage, er
 	return json.RawMessage(raw), nil
 }
 
-func (c BexioClient) newJSONRequest(ctx context.Context, method, path string, payload any) (*http.Request, error) {
+func (c BexioClient) newJSONRequest(ctx context.Context, path string, payload any) (*http.Request, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	httpReq, err := c.newRequest(ctx, method, path, bytes.NewReader(body))
+	httpReq, err := c.newRequest(ctx, http.MethodPost, path, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
