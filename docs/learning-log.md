@@ -30,6 +30,41 @@ None
 ### Recall Answers
 N/A
 
+---
+
+## 2026-02-15: 16-merge-list-search-timesheets
+
+### Acceptance Test
+- Entry: `search_timesheets` MCP tool in `server_test.go`
+- Verified: single tool handles list behavior (no filters), search behavior (with `search_fields`), and optional date filtering
+
+### Architecture
+```mermaid
+graph TD
+    MCP[search_timesheets] --> Dispatch[listOrSearchTimesheets]
+    Dispatch --> List[BexioClient.ListTimesheets]
+    Dispatch --> Search[BexioClient.SearchTimesheets]
+    MCP --> DateFilter[filterTimesheetsByOptionalDateRange]
+```
+
+### Functional Core
+- `listOrSearchTimesheets`: single dispatch point for list-vs-search retrieval
+- `filterTimesheetsByOptionalDateRange`: shared post-retrieval date filtering
+
+### Unit Tests (0)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| N/A | 0 | N/A |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
 ## Slice 15: Fix List Timesheets Missing Recent Entries
 
 **Date:** 2026-02-15

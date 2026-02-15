@@ -99,20 +99,9 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 		"search_timesheets",
 		"List and search timesheet entries in Bexio",
 		func(ctx context.Context, input bexioSearchTimesheetsRequest) (any, error) {
-			if len(input.SearchFields) == 0 {
-				entries, err := bexio.ListTimesheets(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("list timesheets: %w", err)
-				}
-
-				entries = filterTimesheetsByOptionalDateRange(entries, input.DateFrom, input.DateTo)
-
-				return entries, nil
-			}
-
-			entries, err := bexio.SearchTimesheets(ctx, input.SearchFields)
+			entries, err := listOrSearchTimesheets(ctx, bexio, input.SearchFields)
 			if err != nil {
-				return nil, fmt.Errorf("search timesheets: %w", err)
+				return nil, err
 			}
 
 			entries = filterTimesheetsByOptionalDateRange(entries, input.DateFrom, input.DateTo)
@@ -120,6 +109,28 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 			return entries, nil
 		},
 	)
+}
+
+func listOrSearchTimesheets(
+	ctx context.Context,
+	bexio BexioClient,
+	searchFields []bexioSearchField,
+) ([]bexioTimesheet, error) {
+	if len(searchFields) == 0 {
+		entries, err := bexio.ListTimesheets(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list timesheets: %w", err)
+		}
+
+		return entries, nil
+	}
+
+	entries, err := bexio.SearchTimesheets(ctx, searchFields)
+	if err != nil {
+		return nil, fmt.Errorf("search timesheets: %w", err)
+	}
+
+	return entries, nil
 }
 
 func filterTimesheetsByOptionalDateRange(entries []bexioTimesheet, dateFrom, dateTo *string) []bexioTimesheet {
