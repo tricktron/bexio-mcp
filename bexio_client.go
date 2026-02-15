@@ -115,13 +115,8 @@ func (c BexioClient) SearchTimesheets(ctx context.Context, fields []bexioSearchF
 }
 
 func (c BexioClient) ListContacts(ctx context.Context) ([]bexioContact, error) {
-	httpReq, err := c.newRequest(ctx, http.MethodGet, contactEndpoint, nil)
-	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
-	}
-
 	var contacts []bexioContact
-	err = c.doAndDecode(httpReq, &contacts)
+	err := c.getAndDecode(ctx, contactEndpoint, &contacts)
 	if err != nil {
 		return nil, err
 	}
@@ -215,6 +210,15 @@ func (c BexioClient) doAndDecode(httpReq *http.Request, target any) error {
 	}
 
 	return nil
+}
+
+func (c BexioClient) getAndDecode(ctx context.Context, endpoint string, target any) error {
+	httpReq, err := c.newRequest(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("build request: %w", err)
+	}
+
+	return c.doAndDecode(httpReq, target)
 }
 
 func (c BexioClient) doRequest(httpReq *http.Request) (io.ReadCloser, error) {
