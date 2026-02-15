@@ -152,7 +152,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) error {
 		server,
 		"create_timesheet",
 		"Create a timesheet entry in Bexio. If user_id is omitted, defaults to the current authenticated user. If status_id is omitted, defaults to 'Erledigt' (completed).",
-		func(ctx context.Context, input createTimesheetInput) (any, error) {
+		func(ctx context.Context, input createTimesheetInput) (bexioTimesheet, error) {
 			return createTimesheet(ctx, bexio, input)
 		},
 		&jsonschema.ForOptions{TypeSchemas: timesheetTypeSchemas()},
@@ -165,13 +165,18 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) error {
 		server,
 		"delete_timesheet",
 		"Delete a timesheet entry in Bexio",
-		func(ctx context.Context, input bexioDeleteTimesheetRequest) (any, error) {
+		func(ctx context.Context, input bexioDeleteTimesheetRequest) (deleteTimesheetResult, error) {
 			deleted, err := bexio.DeleteTimesheet(ctx, input.ID)
 			if err != nil {
-				return nil, fmt.Errorf("delete timesheet: %w", err)
+				return deleteTimesheetResult{}, fmt.Errorf("delete timesheet: %w", err)
 			}
 
-			return deleted, nil
+			var result deleteTimesheetResult
+			if parseErr := json.Unmarshal(deleted, &result); parseErr != nil {
+				return deleteTimesheetResult{}, fmt.Errorf("parse delete result: %w", parseErr)
+			}
+
+			return result, nil
 		},
 		nil,
 	); err != nil {
@@ -182,10 +187,10 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) error {
 		server,
 		"edit_timesheet",
 		"Edit a timesheet entry in Bexio",
-		func(ctx context.Context, input bexioEditTimesheetRequest) (any, error) {
+		func(ctx context.Context, input bexioEditTimesheetRequest) (bexioTimesheet, error) {
 			updated, err := bexio.EditTimesheet(ctx, input.ID, input.bexioCreateTimesheetRequest)
 			if err != nil {
-				return nil, fmt.Errorf("edit timesheet: %w", err)
+				return bexioTimesheet{}, fmt.Errorf("edit timesheet: %w", err)
 			}
 
 			return updated, nil
@@ -200,15 +205,15 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) error {
 		server,
 		"search_timesheets",
 		"Search and list timesheet entries in Bexio. If search_fields is omitted, lists all timesheets. If search_fields is provided, filters by the given field criteria. Optional date_from/date_to apply client-side date range filtering.",
-		func(ctx context.Context, input bexioSearchTimesheetsRequest) (any, error) {
+		func(ctx context.Context, input bexioSearchTimesheetsRequest) (searchTimesheetsResult, error) {
 			entries, err := listOrSearchTimesheets(ctx, bexio, input.SearchFields)
 			if err != nil {
-				return nil, err
+				return searchTimesheetsResult{}, err
 			}
 
 			entries = filterTimesheetsByOptionalDateRange(entries, input.DateFrom, input.DateTo)
 
-			return entries, nil
+			return searchTimesheetsResult{Results: entries}, nil
 		},
 		&jsonschema.ForOptions{TypeSchemas: searchTypeSchemas()},
 		func(schema *jsonschema.Schema) {
@@ -383,11 +388,11 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) error {
 	return nil
 }
 
-func registerTool[TInput any](
+func registerTool[TInput, TOutput any](
 	server *mcp.Server,
 	name string,
 	description string,
-	handler func(ctx context.Context, input TInput) (any, error),
+	handler func(ctx context.Context, input TInput) (TOutput, error),
 	schemaOpts *jsonschema.ForOptions,
 	schemaMutate ...func(*jsonschema.Schema),
 ) error {
@@ -410,36 +415,19 @@ func registerTool[TInput any](
 		tool.InputSchema = schema
 	}
 
-	mcp.AddTool[TInput, any](
+	mcp.AddTool[TInput, TOutput](
 		server,
 		tool,
-		func(ctx context.Context, _ *mcp.CallToolRequest, input TInput) (*mcp.CallToolResult, any, error) {
-			payload, err := handler(ctx, input)
+		func(ctx context.Context, _ *mcp.CallToolRequest, input TInput) (*mcp.CallToolResult, TOutput, error) {
+			result, err := handler(ctx, input)
 			if err != nil {
-				return nil, nil, err
+				var zero TOutput
+				return nil, zero, err
 			}
 
-			result, err := marshalToolResult(payload)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			return result, nil, nil
+			return nil, result, nil
 		},
 	)
 
 	return nil
-}
-
-func marshalToolResult(payload any) (*mcp.CallToolResult, error) {
-	jsonBody, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("marshal tool result: %w", err)
-	}
-
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(jsonBody)},
-		},
-	}, nil
 }

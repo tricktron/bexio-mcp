@@ -1,11 +1,58 @@
 package main
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+func TestRegisterToolExposesOutputSchemaForTypedResult(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	t.Cleanup(cancel)
+
+	server := mcp.NewServer(&mcp.Implementation{Name: "schema-unit-test", Version: "0.1.0"}, nil)
+	err := registerTool(
+		server,
+		"typed_delete",
+		"Unit test tool for typed output schema",
+		func(context.Context, struct{}) (deleteTimesheetResult, error) {
+			return deleteTimesheetResult{Success: true}, nil
+		},
+		nil,
+	)
+	assert.NoError(t, err)
+
+	serverTransport, clientTransport := mcp.NewInMemoryTransports()
+
+	serverSession, err := server.Connect(ctx, serverTransport, nil)
+	assert.NoError(t, err)
+	t.Cleanup(func() { serverSession.Close() })
+
+	client := mcp.NewClient(&mcp.Implementation{Name: "schema-unit-client", Version: "0.1.0"}, nil)
+	clientSession, err := client.Connect(ctx, clientTransport, nil)
+	assert.NoError(t, err)
+	t.Cleanup(func() { clientSession.Close() })
+
+	listed, err := clientSession.ListTools(ctx, &mcp.ListToolsParams{})
+	assert.NoError(t, err)
+
+	tool := mustFindToolByName(t, listed.Tools, "typed_delete")
+	assert.True(t, tool.OutputSchema != nil, "tool should expose output schema for typed result")
+
+	outputSchema, ok := tool.OutputSchema.(map[string]any)
+	assert.True(t, ok, "output schema should be a map")
+
+	properties, ok := outputSchema["properties"].(map[string]any)
+	assert.True(t, ok, "output schema should include properties")
+
+	_, hasSuccess := properties["success"]
+	assert.True(t, hasSuccess, "output schema should include success property")
+}
 
 func TestRegisteredToolSchemasIncludeEnumConstraints(t *testing.T) {
 	t.Parallel()
@@ -132,5 +179,78 @@ func TestRegisteredToolSchemasIncludeEnumConstraints(t *testing.T) {
 		pattern, ok := dateSchema["pattern"].(string)
 		assert.True(t, ok, "tracking.date should have pattern")
 		assert.Equal(t, `^\d{4}-\d{2}-\d{2}$`, pattern)
+	})
+}
+
+func TestTimesheetToolsExposeOutputSchemasInListAcceptance(t *testing.T) {
+	// Slice: Typed output schemas for timesheet tools
+	// Given the MCP server is running, when a client calls tools/list, then timesheet tools expose expected output schema properties and list_contacts keeps nil output schema.
+	t.Parallel()
+
+	env := newAcceptanceEnv(t)
+
+	listed, err := env.listTools(&mcp.ListToolsParams{})
+	assert.NoError(t, err)
+
+	testCases := []struct {
+		name       string
+		properties []string
+	}{
+		{
+			name: "create_timesheet",
+			properties: []string{
+				"id",
+				"user_id",
+				"status_id",
+				"allowable_bill",
+				"client_service_id",
+				"date",
+				"duration",
+				"running",
+				"tracking",
+			},
+		},
+		{
+			name: "edit_timesheet",
+			properties: []string{
+				"id",
+				"user_id",
+				"status_id",
+				"allowable_bill",
+				"client_service_id",
+				"date",
+				"duration",
+				"running",
+				"tracking",
+			},
+		},
+		{name: "delete_timesheet", properties: []string{"success"}},
+		{name: "search_timesheets", properties: []string{"results"}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			tool := mustFindToolByName(t, listed.Tools, tc.name)
+			assert.True(t, tool.OutputSchema != nil, "tool %q should expose output schema", tc.name)
+
+			outputSchema, ok := tool.OutputSchema.(map[string]any)
+			assert.True(t, ok, "tool %q output schema should be an object map", tc.name)
+			assert.Equal(t, "object", outputSchema["type"])
+
+			properties, ok := outputSchema["properties"].(map[string]any)
+			assert.True(t, ok, "tool %q output schema should include properties", tc.name)
+
+			for _, property := range tc.properties {
+				_, hasProperty := properties[property]
+				assert.True(t, hasProperty, "tool %q output schema should include property %q", tc.name, property)
+			}
+		})
+	}
+
+	t.Run("list_contacts has nil output schema", func(t *testing.T) {
+		lookupTool := mustFindToolByName(t, listed.Tools, "list_contacts")
+		assert.Equal(t, nil, lookupTool.OutputSchema)
 	})
 }
