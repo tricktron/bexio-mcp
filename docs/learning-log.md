@@ -30,6 +30,30 @@ None
 ### Recall Answers
 N/A
 
+## Slice 15: Fix List Timesheets Missing Recent Entries
+
+**Date:** 2026-02-15
+
+### Problem
+`list_timesheets` returned empty results for recent dates when users had >500 total timesheets. The Bexio API defaults to `order_by=id` (oldest first), `limit=500` — so recent entries weren't in the first page.
+
+### Root Cause
+`BexioClient.ListTimesheets` sent no query params. Client-side date filtering then found nothing in the 500 oldest entries.
+
+### Fix
+Added `order_by=date_desc&limit=2000` query params to `ListTimesheets` and `SearchTimesheets`.
+
+### Key Insight
+The acceptance test (fake API) couldn't catch this because it returns all fixtures in one response. The gap was in the **HTTP boundary test** — `fakeBexioCapturedRequest` didn't capture query params. Strengthening the boundary test to assert query params made the bug visible at the unit test level.
+
+### TDD Loop
+- Iterations: 1 (red→green)
+- Unit tests modified: 2 (`TestBexioClientListTimesheets`, `TestBexioClientSearchTimesheets`)
+- New core classes: none
+
+### Architecture
+No structural changes. Same functional core / imperative shell split.
+
 ---
 
 ## 2026-02-15: Search Timesheets by Date
