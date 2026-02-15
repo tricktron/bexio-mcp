@@ -394,3 +394,35 @@ None
 
 ### Recall Answers
 N/A
+
+---
+
+## 2026-02-15: 20-duration-tracking-type
+
+### Acceptance Test
+- Entry: `create_timesheet` in `server_test.go` (`TestCreateTimesheetDurationTrackingAcceptance`)
+- Verified: duration tracking sends `type/date/duration` and omits `start/end` in the request payload
+
+### Architecture
+```mermaid
+graph TD
+    MCPCreate[create_timesheet shell] --> TrackingMarshal[trackingRange.MarshalJSON core]
+    TrackingMarshal --> BexioPayload[duration vs range payload shape]
+```
+
+### Functional Core
+- `trackingRange.MarshalJSON`: serializes duration and range tracking to the correct wire format
+
+### Unit Tests (2)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| `trackingRange` marshaling | 2 | Duration omits start/end; range omits duration while keeping start/end |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A

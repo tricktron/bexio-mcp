@@ -608,7 +608,7 @@ func (api *fakeBexioAPI) captureCreateTimesheetRequest(t *testing.T, r *http.Req
 }
 
 func (api *fakeBexioAPI) lastCreateTimesheetBodyBytes() []byte {
-	return api.lastCreateTimesheetBody
+	return append([]byte(nil), api.lastCreateTimesheetBody...)
 }
 
 func parseTimesheetID(path string) (int, bool) {
@@ -626,6 +626,11 @@ func parseTimesheetID(path string) (int, bool) {
 }
 
 func buildTimesheet(id int, reqBody bexioCreateTimesheetRequest) bexioTimesheet {
+	trackedDuration := reqBody.Tracking.Duration
+	if trackedDuration == "" {
+		trackedDuration = "01:30"
+	}
+
 	return bexioTimesheet{
 		ID:              id,
 		UserID:          reqBody.UserID,
@@ -633,7 +638,7 @@ func buildTimesheet(id int, reqBody bexioCreateTimesheetRequest) bexioTimesheet 
 		AllowableBill:   reqBody.AllowableBill,
 		ClientServiceID: reqBody.ClientServiceID,
 		Date:            reqBody.Tracking.Date,
-		Duration:        "01:30",
+		Duration:        trackedDuration,
 		Running:         false,
 		Text:            reqBody.Text,
 		ContactID:       reqBody.ContactID,
