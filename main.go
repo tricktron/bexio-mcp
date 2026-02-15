@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -67,6 +69,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 		func(ctx context.Context, input createTimesheetInput) (any, error) {
 			return createTimesheet(ctx, bexio, input)
 		},
+		&jsonschema.ForOptions{TypeSchemas: timesheetTypeSchemas()},
 	)
 	registerTool(
 		server,
@@ -80,6 +83,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 
 			return deleted, nil
 		},
+		nil,
 	)
 	registerTool(
 		server,
@@ -93,6 +97,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 
 			return updated, nil
 		},
+		&jsonschema.ForOptions{TypeSchemas: timesheetTypeSchemas()},
 	)
 	registerTool(
 		server,
@@ -108,6 +113,7 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 
 			return entries, nil
 		},
+		&jsonschema.ForOptions{TypeSchemas: searchTypeSchemas()},
 	)
 }
 
@@ -162,6 +168,7 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) {
 
 			return contacts, nil
 		},
+		nil,
 	)
 	registerTool(
 		server,
@@ -184,6 +191,7 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) {
 
 			return projects, nil
 		},
+		nil,
 	)
 	registerTool(
 		server,
@@ -197,6 +205,7 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) {
 
 			return services, nil
 		},
+		nil,
 	)
 	registerTool(
 		server,
@@ -210,6 +219,7 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) {
 
 			return packages, nil
 		},
+		nil,
 	)
 	registerTool(
 		server,
@@ -223,6 +233,7 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) {
 
 			return statuses, nil
 		},
+		nil,
 	)
 	registerTool(
 		server,
@@ -236,6 +247,7 @@ func registerLookupTools(server *mcp.Server, bexio BexioClient) {
 
 			return currentUser, nil
 		},
+		nil,
 	)
 }
 
@@ -244,23 +256,37 @@ func registerTool[TInput any](
 	name string,
 	description string,
 	handler func(ctx context.Context, input TInput) (any, error),
+	schemaOpts *jsonschema.ForOptions,
 ) {
-	mcp.AddTool[TInput, any](server, &mcp.Tool{
+	tool := &mcp.Tool{
 		Name:        name,
 		Description: description,
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, input TInput) (*mcp.CallToolResult, any, error) {
-		payload, err := handler(ctx, input)
-		if err != nil {
-			return nil, nil, err
-		}
+	}
 
-		result, err := marshalToolResult(payload)
-		if err != nil {
-			return nil, nil, err
+	if schemaOpts != nil {
+		schema, err := jsonschema.ForType(reflect.TypeFor[TInput](), schemaOpts)
+		if err == nil {
+			tool.InputSchema = schema
 		}
+	}
 
-		return result, nil, nil
-	})
+	mcp.AddTool[TInput, any](
+		server,
+		tool,
+		func(ctx context.Context, _ *mcp.CallToolRequest, input TInput) (*mcp.CallToolResult, any, error) {
+			payload, err := handler(ctx, input)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			result, err := marshalToolResult(payload)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			return result, nil, nil
+		},
+	)
 }
 
 func marshalToolResult(payload any) (*mcp.CallToolResult, error) {
