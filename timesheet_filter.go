@@ -4,7 +4,7 @@ func filterTimesheetsByDate(timesheets []bexioTimesheet, from, to string) []bexi
 	filtered := make([]bexioTimesheet, 0, len(timesheets))
 
 	for _, timesheet := range timesheets {
-		if timesheet.Date >= from && timesheet.Date <= to {
+		if (from == "" || timesheet.Date >= from) && (to == "" || timesheet.Date <= to) {
 			filtered = append(filtered, timesheet)
 		}
 	}
