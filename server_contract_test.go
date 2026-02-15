@@ -79,7 +79,7 @@ func callToolAndDecode[T any](t *testing.T, env acceptanceEnv, params *mcp.CallT
 	return decoded
 }
 
-func TestContractCreateTimesheetAcceptance(t *testing.T) {
+func TestContractCreateTimesheet(t *testing.T) {
 	// Slice: Real API Contract Tests (Environment-Polymorphic)
 	// Given create_timesheet runs in fake and real environments, when the tool is called with valid payloads, then both modes satisfy the same observable contract.
 	for _, tc := range contractTestEnvs(t) {
@@ -131,7 +131,7 @@ func TestContractSearchTimesheets(t *testing.T) {
 	}
 }
 
-func TestContractListClientServicesAcceptance(t *testing.T) {
+func TestContractListClientServices(t *testing.T) {
 	// Slice: Real API Contract Tests (Environment-Polymorphic)
 	// Given list_client_services runs in fake and real environments, when the tool is called, then both modes return a list of client services with valid shape.
 	for _, tc := range contractTestEnvs(t) {
@@ -152,7 +152,7 @@ func TestContractListClientServicesAcceptance(t *testing.T) {
 	}
 }
 
-func TestContractListContactsAcceptance(t *testing.T) {
+func TestContractListContacts(t *testing.T) {
 	// Slice: Real API Contract Tests (Environment-Polymorphic)
 	// Given list_contacts runs in fake and real environments, when the tool is called, then both modes return a list of contacts with valid shape.
 	for _, tc := range contractTestEnvs(t) {
