@@ -113,6 +113,14 @@ type bexioTimesheet struct {
 	Tracking        trackingRange `json:"tracking"`
 }
 
+type deleteTimesheetResult struct {
+	Success bool `json:"success"`
+}
+
+type searchTimesheetsResult struct {
+	Results []bexioTimesheet `json:"results"`
+}
+
 func timesheetTypeSchemas() map[reflect.Type]*jsonschema.Schema {
 	return map[reflect.Type]*jsonschema.Schema{
 		reflect.TypeFor[TrackingType](): {
