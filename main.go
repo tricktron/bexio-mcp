@@ -98,10 +98,14 @@ func registerTimesheetTools(server *mcp.Server, bexio BexioClient) {
 		server,
 		"list_timesheets",
 		"List timesheet entries in Bexio",
-		func(ctx context.Context, _ struct{}) (any, error) {
+		func(ctx context.Context, input bexioListTimesheetsRequest) (any, error) {
 			entries, err := bexio.ListTimesheets(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("list timesheets: %w", err)
+			}
+
+			if input.DateFrom != nil && input.DateTo != nil {
+				entries = filterTimesheetsByDate(entries, *input.DateFrom, *input.DateTo)
 			}
 
 			return entries, nil

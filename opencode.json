@@ -4,7 +4,7 @@
         "bexio": {
             "type": "local",
             "command": [
-                "/home/tricktron/github/my-repos/bexio-mcp/bexio-mcp"
+                "go", "run", "."
             ],
             "environment": {
                 "BEXIO_API_TOKEN": "{env:BEXIO_API_TOKEN}",
