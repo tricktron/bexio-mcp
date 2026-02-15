@@ -144,13 +144,13 @@ func TestEditTimesheetAcceptance(t *testing.T) {
 	}, updated)
 }
 
-func TestListTimesheetsAcceptance(t *testing.T) {
-	// Slice: List & Search Timesheets
-	// Given a running MCP server, when the client calls list_timesheets, then the tool returns recent timesheet entries with realistic tracking datetime format and core API fields.
+func TestSearchTimesheetsNoArgsReturnsAllAcceptance(t *testing.T) {
+	// Slice: Merge list_timesheets and search_timesheets
+	// Given a running MCP server, when the client calls search_timesheets, then the tool returns recent timesheet entries with realistic tracking datetime format and core API fields.
 	env := newAcceptanceEnv(t)
 
 	result, err := env.callTool(&mcp.CallToolParams{
-		Name: "list_timesheets",
+		Name: "search_timesheets",
 	})
 	assert.NoError(t, err)
 
@@ -201,13 +201,13 @@ func TestSearchTimesheetsAcceptance(t *testing.T) {
 	)
 }
 
-func TestListTimesheetsDateRangeFilterAcceptance(t *testing.T) {
-	// Slice: Search Timesheets by Date
+func TestSearchTimesheetsDateRangeFilterAcceptance(t *testing.T) {
+	// Slice: Merge list_timesheets and search_timesheets
 	// Given I have timesheets on 2026-02-01 and 2026-02-02, when I request timesheets from 2026-02-02 to 2026-02-02, then I receive only the timesheet from 2026-02-02.
 	env := newAcceptanceEnv(t)
 
 	result, err := env.callTool(&mcp.CallToolParams{
-		Name: "list_timesheets",
+		Name: "search_timesheets",
 		Arguments: map[string]any{
 			"date_from": "2026-02-02",
 			"date_to":   "2026-02-02",
@@ -228,13 +228,13 @@ func TestListTimesheetsDateRangeFilterAcceptance(t *testing.T) {
 	assert.Equal(t, "2026-02-02", listed[0].Date)
 }
 
-func TestListTimesheetsOpenEndedDateRangeAcceptance(t *testing.T) {
-	// Slice: Search Timesheets by Date
+func TestSearchTimesheetsOpenEndedDateRangeAcceptance(t *testing.T) {
+	// Slice: Merge list_timesheets and search_timesheets
 	// Given I have timesheets on 2026-02-01 and 2026-02-02, when I request timesheets from 2026-02-02 onward (no date_to), then I receive only the timesheet from 2026-02-02.
 	env := newAcceptanceEnv(t)
 
 	result, err := env.callTool(&mcp.CallToolParams{
-		Name: "list_timesheets",
+		Name: "search_timesheets",
 		Arguments: map[string]any{
 			"date_from": "2026-02-02",
 		},

@@ -108,13 +108,13 @@ func TestContractCreateTimesheetAcceptance(t *testing.T) {
 	}
 }
 
-func TestContractListTimesheetsAcceptance(t *testing.T) {
-	// Slice: Real API Contract Tests (Environment-Polymorphic)
-	// Given list_timesheets runs in fake and real environments, when the tool is called, then both modes return a list of timesheets with valid shape.
+func TestContractSearchTimesheets(t *testing.T) {
+	// Slice: Merge list_timesheets and search_timesheets
+	// Given search_timesheets runs in fake and real environments, when the tool is called, then both modes return a list of timesheets with valid shape.
 	for _, tc := range contractTestEnvs(t) {
 		t.Run(tc.name, func(t *testing.T) {
 			timesheets := callToolAndDecode[[]bexioTimesheet](t, tc.env, &mcp.CallToolParams{
-				Name: "list_timesheets",
+				Name: "search_timesheets",
 			})
 
 			assert.True(t, len(timesheets) > 0, "should return at least one timesheet")

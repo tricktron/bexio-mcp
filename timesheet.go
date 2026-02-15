@@ -53,11 +53,7 @@ type timesheetDateRangeFilter struct {
 type bexioSearchTimesheetsRequest struct {
 	timesheetDateRangeFilter
 
-	SearchFields []bexioSearchField `json:"search_fields"`
-}
-
-type bexioListTimesheetsRequest struct {
-	timesheetDateRangeFilter
+	SearchFields []bexioSearchField `json:"search_fields,omitempty"`
 }
 
 type bexioListProjectsRequest struct {
