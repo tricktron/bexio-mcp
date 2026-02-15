@@ -32,6 +32,41 @@ N/A
 
 ---
 
+## Slice 26: Typed output schemas for lookup tools
+
+### Date
+2026-02-16
+
+### Acceptance Test
+`TestLookupToolsReturnTypedStructuredResponsesAcceptance` — calls each of 6 lookup tools via MCP, decodes into typed wrapper structs, asserts field values match fixtures.
+
+### Core Types Discovered
+- `bexioContact`, `bexioProject`, `bexioService`, `bexioPackage`, `bexioUser` (element types in `lookup.go`)
+- `listContactsResult`, `listProjectsResult`, `listServicesResult`, `listPackagesResult`, `listStatusesResult` (wrapper types in `lookup.go`)
+
+### Unit Tests
+| Component | Test | Behavior |
+| --------- | ---- | -------- |
+| BexioClient | TestBexioClientListContacts | ListContacts returns []bexioContact |
+| BexioClient | TestBexioClientListProjects | ListProjects returns []bexioProject |
+| BexioClient | TestBexioClientSearchProjects | SearchProjects returns []bexioProject |
+| BexioClient | TestBexioClientListClientServices | ListClientServices returns []bexioService |
+| BexioClient | TestBexioClientListPackages | ListPackages returns []bexioPackage |
+
+### Architecture
+- Shell: `main.go` (tool registration with typed TOutput), `bexio_client.go` (HTTP with typed decode)
+- Core: `lookup.go` (response types), `timesheet.go` (existing types)
+
+### TDD Iterations
+3 iterations. Key decisions:
+- Extracted `getAndDecode` helper in BexioClient to reduce duplication across typed conversions
+- Removed dead `getRaw`/`postRaw`/`readRawResponse` methods and `parseCurrentUserID`/`parseTimesheetStatuses` parsers after typed conversion made them obsolete
+
+### Discoveries
+None
+
+---
+
 ## 2026-02-15: Typed output schemas for timesheet tools
 
 ### Acceptance Test

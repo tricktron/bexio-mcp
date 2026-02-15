@@ -65,13 +65,18 @@ func (c BexioClient) postTimesheet(
 	return timesheet, nil
 }
 
-func (c BexioClient) DeleteTimesheet(ctx context.Context, id int) (json.RawMessage, error) {
+func (c BexioClient) DeleteTimesheet(ctx context.Context, id int) (deleteTimesheetResult, error) {
 	httpReq, err := c.newRequest(ctx, http.MethodDelete, fmt.Sprintf("%s/%d", timesheetEndpoint, id), nil)
 	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
+		return deleteTimesheetResult{}, fmt.Errorf("build request: %w", err)
 	}
 
-	return c.readRawResponse(httpReq)
+	var result deleteTimesheetResult
+	if err = c.doAndDecode(httpReq, &result); err != nil {
+		return deleteTimesheetResult{}, err
+	}
+
+	return result, nil
 }
 
 func (c BexioClient) ListTimesheets(ctx context.Context) ([]bexioTimesheet, error) {
@@ -188,21 +193,6 @@ func (c BexioClient) SearchProjects(ctx context.Context, contactID int) ([]bexio
 	}
 
 	return projects, nil
-}
-
-func (c BexioClient) readRawResponse(httpReq *http.Request) (json.RawMessage, error) {
-	body, err := c.doRequest(httpReq)
-	if err != nil {
-		return nil, err
-	}
-	defer body.Close()
-
-	raw, err := io.ReadAll(body)
-	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
-	}
-
-	return json.RawMessage(raw), nil
 }
 
 func (c BexioClient) newJSONRequest(ctx context.Context, path string, payload any) (*http.Request, error) {

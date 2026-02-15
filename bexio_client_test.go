@@ -62,6 +62,7 @@ func TestBexioClientDeleteTimesheet(t *testing.T) {
 	t.Parallel()
 
 	const responseBody = `{"success":true}`
+	expected := deleteTimesheetResult{Success: true}
 
 	received := fakeBexioCapturedRequest{}
 	server := newRawResponseServer(t, &received, responseBody, nil)
@@ -75,7 +76,7 @@ func TestBexioClientDeleteTimesheet(t *testing.T) {
 		Path:          "/2.0/timesheet/777",
 		Authorization: "Bearer test-token",
 	}, received)
-	assert.Equal(t, json.RawMessage(responseBody), result)
+	assert.Equal(t, expected, result)
 }
 
 func TestBexioClientEditTimesheet(t *testing.T) {
@@ -240,13 +241,12 @@ func TestBexioClientListProjects(t *testing.T) {
 
 	result, err := client.ListProjects(context.Background())
 	assert.NoError(t, err)
-	var typedProjects []bexioProject = result
 	assert.Equal(t, fakeBexioCapturedRequest{
 		Method:        http.MethodGet,
 		Path:          "/2.0/pr_project",
 		Authorization: "Bearer test-token",
 	}, received)
-	assert.Equal(t, expected, typedProjects)
+	assert.Equal(t, expected, result)
 }
 
 func TestBexioClientSearchProjects(t *testing.T) {

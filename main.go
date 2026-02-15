@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -105,17 +104,7 @@ func createTimesheet(ctx context.Context, bexio BexioClient, input createTimeshe
 }
 
 func deleteTimesheet(ctx context.Context, bexio BexioClient, id int) (deleteTimesheetResult, error) {
-	deleted, err := bexio.DeleteTimesheet(ctx, id)
-	if err != nil {
-		return deleteTimesheetResult{}, fmt.Errorf("delete timesheet: %w", err)
-	}
-
-	var result deleteTimesheetResult
-	if parseErr := json.Unmarshal(deleted, &result); parseErr != nil {
-		return deleteTimesheetResult{}, fmt.Errorf("parse delete result: %w", parseErr)
-	}
-
-	return result, nil
+	return bexio.DeleteTimesheet(ctx, id)
 }
 
 func addTrackingDatePattern(schema *jsonschema.Schema) {
