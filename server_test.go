@@ -27,6 +27,7 @@ func TestCreateTimesheetAcceptance(t *testing.T) {
 			"allowable_bill":    true,
 			"client_service_id": 99,
 			"contact_id":        11,
+			"sub_contact_id":    13,
 			"pr_project_id":     12,
 			"text":              "Build acceptance test",
 			"tracking": map[string]any{
@@ -146,6 +147,7 @@ func TestEditTimesheetAcceptance(t *testing.T) {
 			"allowable_bill":    true,
 			"client_service_id": 99,
 			"contact_id":        11,
+			"sub_contact_id":    13,
 			"pr_project_id":     12,
 			"text":              "Updated acceptance test",
 			"tracking": map[string]any{
@@ -177,6 +179,7 @@ func TestEditTimesheetAcceptance(t *testing.T) {
 		Duration:        "01:30",
 		Running:         false,
 		ContactID:       intPtr(11),
+		SubContactID:    intPtr(13),
 		PrProjectID:     intPtr(12),
 		Text:            "Updated acceptance test",
 		Tracking: trackingRange{
@@ -245,6 +248,34 @@ func TestSearchTimesheetsAcceptance(t *testing.T) {
 		strings.Contains(string(contentJSON), "search-match-1"),
 		"result should contain matching timesheet entries",
 	)
+}
+
+func TestSearchTimesheetsWithSubContactIDAcceptance(t *testing.T) {
+	// Slice: Add sub_contact_id to timesheets
+	// Given search_timesheets is called with a sub_contact_id filter, when the MCP tool executes, then the HTTP search payload includes sub_contact_id.
+	env := newAcceptanceEnv(t)
+
+	result, err := env.callTool(&mcp.CallToolParams{
+		Name: "search_timesheets",
+		Arguments: map[string]any{
+			"search_fields": []map[string]any{
+				{"field": "sub_contact_id", "value": "13", "criteria": "="},
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.False(t, result.IsError)
+
+	rawBody := env.fakeAPI.lastSearchTimesheetBodyBytes()
+	assert.True(t, len(rawBody) > 0, "fake Bexio API should capture POST /2.0/timesheet/search request body")
+
+	var sentFilters []map[string]any
+	err = json.Unmarshal(rawBody, &sentFilters)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(sentFilters))
+	assert.Equal(t, "sub_contact_id", sentFilters[0]["field"])
+	assert.Equal(t, "13", sentFilters[0]["value"])
+	assert.Equal(t, "=", sentFilters[0]["criteria"])
 }
 
 func TestSearchTimesheetsDateRangeFilterAcceptance(t *testing.T) {
@@ -530,6 +561,8 @@ type fakeBexioAPI struct {
 	URL                     string
 	server                  *httptest.Server
 	lastCreateTimesheetBody []byte
+	lastEditTimesheetBody   []byte
+	lastSearchTimesheetBody []byte
 }
 
 type acceptanceEnv struct {
@@ -594,7 +627,8 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 		http.MethodGet + " /2.0/timesheet": func(w http.ResponseWriter, _ *http.Request) {
 			writeJSONResponse(t, w, http.StatusOK, listTimesheetEntriesFixture())
 		},
-		http.MethodPost + " /2.0/timesheet/search": func(w http.ResponseWriter, _ *http.Request) {
+		http.MethodPost + " /2.0/timesheet/search": func(w http.ResponseWriter, r *http.Request) {
+			api.captureSearchTimesheetRequest(t, r)
 			writeJSONResponse(t, w, http.StatusOK, searchTimesheetEntriesFixture())
 		},
 		http.MethodGet + " /2.0/contact": func(w http.ResponseWriter, _ *http.Request) {
@@ -645,7 +679,7 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 	api.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 
-		if handled := handleTimesheetByIDRoutes(t, w, r); handled {
+		if handled := handleTimesheetByIDRoutes(t, api, w, r); handled {
 			return
 		}
 
@@ -662,7 +696,7 @@ func startFakeBexioAPI(t *testing.T) *fakeBexioAPI {
 	return api
 }
 
-func handleTimesheetByIDRoutes(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
+func handleTimesheetByIDRoutes(t *testing.T, api *fakeBexioAPI, w http.ResponseWriter, r *http.Request) bool {
 	t.Helper()
 
 	if !strings.HasPrefix(r.URL.Path, "/2.0/timesheet/") || r.URL.Path == "/2.0/timesheet/search" {
@@ -677,7 +711,7 @@ func handleTimesheetByIDRoutes(t *testing.T, w http.ResponseWriter, r *http.Requ
 
 	switch r.Method {
 	case http.MethodPost:
-		reqBody := decodeRequestJSON[bexioCreateTimesheetRequest](t, r)
+		reqBody := api.captureEditTimesheetRequest(t, r)
 		writeJSONResponse(t, w, http.StatusOK, buildTimesheet(id, reqBody))
 		return true
 	case http.MethodGet:
@@ -698,20 +732,57 @@ func handleTimesheetByIDRoutes(t *testing.T, w http.ResponseWriter, r *http.Requ
 func (api *fakeBexioAPI) captureCreateTimesheetRequest(t *testing.T, r *http.Request) bexioCreateTimesheetRequest {
 	t.Helper()
 
-	rawBody, err := io.ReadAll(r.Body)
-	assert.NoError(t, err)
-
+	rawBody := api.captureRequestBody(t, r)
 	api.lastCreateTimesheetBody = append(api.lastCreateTimesheetBody[:0], rawBody...)
 
 	var reqBody bexioCreateTimesheetRequest
-	err = json.Unmarshal(rawBody, &reqBody)
+	err := json.Unmarshal(rawBody, &reqBody)
 	assert.NoError(t, err)
 
 	return reqBody
 }
 
+func (api *fakeBexioAPI) captureEditTimesheetRequest(t *testing.T, r *http.Request) bexioCreateTimesheetRequest {
+	t.Helper()
+
+	rawBody := api.captureRequestBody(t, r)
+	api.lastEditTimesheetBody = append(api.lastEditTimesheetBody[:0], rawBody...)
+
+	var reqBody bexioCreateTimesheetRequest
+	err := json.Unmarshal(rawBody, &reqBody)
+	assert.NoError(t, err)
+
+	return reqBody
+}
+
+func (api *fakeBexioAPI) captureSearchTimesheetRequest(t *testing.T, r *http.Request) []bexioSearchField {
+	t.Helper()
+
+	rawBody := api.captureRequestBody(t, r)
+	api.lastSearchTimesheetBody = append(api.lastSearchTimesheetBody[:0], rawBody...)
+
+	var reqBody []bexioSearchField
+	err := json.Unmarshal(rawBody, &reqBody)
+	assert.NoError(t, err)
+
+	return reqBody
+}
+
+func (api *fakeBexioAPI) captureRequestBody(t *testing.T, r *http.Request) []byte {
+	t.Helper()
+
+	rawBody, err := io.ReadAll(r.Body)
+	assert.NoError(t, err)
+
+	return rawBody
+}
+
 func (api *fakeBexioAPI) lastCreateTimesheetBodyBytes() []byte {
 	return api.lastCreateTimesheetBody
+}
+
+func (api *fakeBexioAPI) lastSearchTimesheetBodyBytes() []byte {
+	return api.lastSearchTimesheetBody
 }
 
 func parseTimesheetID(path string) (int, bool) {
@@ -745,6 +816,7 @@ func buildTimesheet(id int, reqBody bexioCreateTimesheetRequest) bexioTimesheet 
 		Running:         false,
 		Text:            reqBody.Text,
 		ContactID:       reqBody.ContactID,
+		SubContactID:    reqBody.SubContactID,
 		PrProjectID:     reqBody.PrProjectID,
 		Tracking:        reqBody.Tracking,
 	}
@@ -825,17 +897,6 @@ func writeJSONResponse(t *testing.T, w http.ResponseWriter, status int, payload 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		t.Fatalf("encode fake response: %v", err)
 	}
-}
-
-func decodeRequestJSON[T any](t *testing.T, r *http.Request) T {
-	t.Helper()
-
-	var payload T
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode fake request: %v", err)
-	}
-
-	return payload
 }
 
 func mustFindToolByName(t *testing.T, tools []*mcp.Tool, name string) *mcp.Tool {

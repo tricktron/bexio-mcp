@@ -42,25 +42,27 @@ func (t trackingRange) MarshalJSON() ([]byte, error) {
 }
 
 type createTimesheetInput struct {
-	UserID          *int          `json:"user_id,omitempty"       jsonschema:"Bexio user ID. If omitted, defaults to the current authenticated user. Use get_current_user to find the ID"`
-	StatusID        *int          `json:"status_id,omitempty"     jsonschema:"Timesheet status ID. If omitted, defaults to the 'Erledigt' (completed) status. Use list_timesheet_statuses to find valid IDs"`
-	AllowableBill   bool          `json:"allowable_bill"          jsonschema:"Whether this entry is billable"`
-	ClientServiceID int           `json:"client_service_id"       jsonschema:"ID of the client service (activity type). Use list_client_services to find the ID by name"`
-	Tracking        trackingRange `json:"tracking"                jsonschema:"Tracked time details (type plus date/time fields)"`
-	Text            string        `json:"text,omitempty"          jsonschema:"Description text for the timesheet entry"`
-	ContactID       *int          `json:"contact_id,omitempty"    jsonschema:"Bexio contact ID to associate with this entry. Use list_contacts to find the ID by name"`
-	PrProjectID     *int          `json:"pr_project_id,omitempty" jsonschema:"Bexio project ID to associate with this entry. Use list_projects to find the ID by name"`
+	UserID          *int          `json:"user_id,omitempty"        jsonschema:"Bexio user ID. If omitted, defaults to the current user. Use get_current_user to find the ID"`
+	StatusID        *int          `json:"status_id,omitempty"      jsonschema:"Timesheet status ID. If omitted, defaults to 'Erledigt'. Use list_timesheet_statuses to find valid IDs"`
+	AllowableBill   bool          `json:"allowable_bill"           jsonschema:"Whether this entry is billable"`
+	ClientServiceID int           `json:"client_service_id"        jsonschema:"ID of the client service (activity type). Use list_client_services to find the ID by name"`
+	Tracking        trackingRange `json:"tracking"                 jsonschema:"Tracked time details (type plus date/time fields)"`
+	Text            string        `json:"text,omitempty"           jsonschema:"Description text for the timesheet entry"`
+	ContactID       *int          `json:"contact_id,omitempty"     jsonschema:"Bexio contact ID to associate with this entry. Use list_contacts to find the ID by name"`
+	SubContactID    *int          `json:"sub_contact_id,omitempty" jsonschema:"Bexio contact ID of the contact person (sub-contact). Use list_contacts to find the ID by name"`
+	PrProjectID     *int          `json:"pr_project_id,omitempty"  jsonschema:"Bexio project ID to associate with this entry. Use list_projects to find the ID by name"`
 }
 
 type bexioCreateTimesheetRequest struct {
-	UserID          int           `json:"user_id"                 jsonschema:"Bexio user ID. Use get_current_user to find the ID"`
-	StatusID        int           `json:"status_id,omitempty"     jsonschema:"Timesheet status ID. Use list_timesheet_statuses to find valid IDs"`
-	AllowableBill   bool          `json:"allowable_bill"          jsonschema:"Whether this entry is billable"`
-	ClientServiceID int           `json:"client_service_id"       jsonschema:"ID of the client service (activity type). Use list_client_services to find the ID by name"`
-	Tracking        trackingRange `json:"tracking"                jsonschema:"Tracked time details (type plus date/time fields)"`
-	Text            string        `json:"text,omitempty"          jsonschema:"Description text for the timesheet entry"`
-	ContactID       *int          `json:"contact_id,omitempty"    jsonschema:"Bexio contact ID to associate with this entry. Use list_contacts to find the ID by name"`
-	PrProjectID     *int          `json:"pr_project_id,omitempty" jsonschema:"Bexio project ID to associate with this entry. Use list_projects to find the ID by name"`
+	UserID          int           `json:"user_id"                  jsonschema:"Bexio user ID. Use get_current_user to find the ID"`
+	StatusID        int           `json:"status_id,omitempty"      jsonschema:"Timesheet status ID. Use list_timesheet_statuses to find valid IDs"`
+	AllowableBill   bool          `json:"allowable_bill"           jsonschema:"Whether this entry is billable"`
+	ClientServiceID int           `json:"client_service_id"        jsonschema:"ID of the client service (activity type). Use list_client_services to find the ID by name"`
+	Tracking        trackingRange `json:"tracking"                 jsonschema:"Tracked time details (type plus date/time fields)"`
+	Text            string        `json:"text,omitempty"           jsonschema:"Description text for the timesheet entry"`
+	ContactID       *int          `json:"contact_id,omitempty"     jsonschema:"Bexio contact ID to associate with this entry. Use list_contacts to find the ID by name"`
+	SubContactID    *int          `json:"sub_contact_id,omitempty" jsonschema:"Bexio contact ID of the contact person (sub-contact). Use list_contacts to find the ID by name"`
+	PrProjectID     *int          `json:"pr_project_id,omitempty"  jsonschema:"Bexio project ID to associate with this entry. Use list_projects to find the ID by name"`
 }
 
 type bexioEditTimesheetRequest struct {
@@ -109,6 +111,7 @@ type bexioTimesheet struct {
 	Running         bool          `json:"running"`
 	Text            string        `json:"text,omitempty"`
 	ContactID       *int          `json:"contact_id,omitempty"`
+	SubContactID    *int          `json:"sub_contact_id,omitempty"`
 	PrProjectID     *int          `json:"pr_project_id,omitempty"`
 	Tracking        trackingRange `json:"tracking"`
 }
@@ -161,6 +164,7 @@ func searchTypeSchemas() map[reflect.Type]*jsonschema.Schema {
 				"id",
 				"client_service_id",
 				"contact_id",
+				"sub_contact_id",
 				"user_id",
 				"pr_project_id",
 				"status_id",

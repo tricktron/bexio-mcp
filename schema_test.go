@@ -135,7 +135,19 @@ func TestRegisteredToolSchemasIncludeEnumConstraints(t *testing.T) {
 
 		enum, ok := fieldSchema["enum"].([]any)
 		assert.True(t, ok, "field should have enum")
-		assert.Equal(t, []any{"id", "client_service_id", "contact_id", "user_id", "pr_project_id", "status_id"}, enum)
+		assert.Equal(
+			t,
+			[]any{
+				"id",
+				"client_service_id",
+				"contact_id",
+				"sub_contact_id",
+				"user_id",
+				"pr_project_id",
+				"status_id",
+			},
+			enum,
+		)
 	})
 
 	t.Run("search_timesheets date_from pattern", func(t *testing.T) {

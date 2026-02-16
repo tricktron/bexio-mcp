@@ -25,6 +25,7 @@ func resolveTimesheetDefaults(
 		Tracking:        input.Tracking,
 		Text:            input.Text,
 		ContactID:       input.ContactID,
+		SubContactID:    input.SubContactID,
 		PrProjectID:     input.PrProjectID,
 	}
 }
