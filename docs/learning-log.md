@@ -1,5 +1,35 @@
 ---
 
+## 2026-02-16: Slice 29 — Add sub_contact_id to timesheets
+
+### Acceptance Test
+- Extended `TestCreateTimesheetAcceptance` and `TestEditTimesheetAcceptance` with `sub_contact_id` field
+- Added `TestSearchTimesheetsWithSubContactIDAcceptance` for search enum coverage
+- Updated `TestRegisteredToolSchemasIncludeEnumConstraints` expected enum
+
+### Architecture
+No structural changes. Field addition within existing MCP Server container.
+
+### Core Classes Discovered
+None — mechanical field addition following `contact_id`/`pr_project_id` pattern.
+
+### Unit Tests
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| N/A | 0 | No new unit tests — acceptance + schema tests sufficient for field passthrough |
+
+### Stats
+- Iterations: 1
+- Files changed: 4 (timesheet.go, timesheet_defaults.go, server_test.go, schema_test.go)
+
+### Discoveries
+None
+
+### Key Decision
+Integrated `sub_contact_id` into existing acceptance tests rather than creating duplicate tests — the field follows an identical pattern to `contact_id` and doesn't warrant separate test functions.
+
+---
+
 ## 2026-02-08: Project Setup & Create Timesheet
 
 ### Acceptance Test
