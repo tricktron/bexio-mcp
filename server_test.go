@@ -561,7 +561,6 @@ type fakeBexioAPI struct {
 	URL                     string
 	server                  *httptest.Server
 	lastCreateTimesheetBody []byte
-	lastEditTimesheetBody   []byte
 	lastSearchTimesheetBody []byte
 }
 
@@ -746,7 +745,6 @@ func (api *fakeBexioAPI) captureEditTimesheetRequest(t *testing.T, r *http.Reque
 	t.Helper()
 
 	rawBody := api.captureRequestBody(t, r)
-	api.lastEditTimesheetBody = append(api.lastEditTimesheetBody[:0], rawBody...)
 
 	var reqBody bexioCreateTimesheetRequest
 	err := json.Unmarshal(rawBody, &reqBody)

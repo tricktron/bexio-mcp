@@ -20,6 +20,7 @@ func TestBexioClientCreateTimesheet(t *testing.T) {
 		Text:            "Build acceptance test",
 		ContactID:       intPtr(11),
 		PrProjectID:     intPtr(12),
+		SubContactID:    intPtr(13),
 		Tracking: trackingRange{
 			Type:  "range",
 			Date:  "2026-02-08",
@@ -36,6 +37,7 @@ func TestBexioClientCreateTimesheet(t *testing.T) {
 		Text:            request.Text,
 		ContactID:       request.ContactID,
 		PrProjectID:     request.PrProjectID,
+		SubContactID:    request.SubContactID,
 		Tracking:        request.Tracking,
 	}
 
@@ -89,6 +91,7 @@ func TestBexioClientEditTimesheet(t *testing.T) {
 		Text:            "Updated acceptance test",
 		ContactID:       intPtr(11),
 		PrProjectID:     intPtr(12),
+		SubContactID:    intPtr(13),
 		Tracking: trackingRange{
 			Type:  "range",
 			Date:  "2026-02-08",
@@ -105,6 +108,7 @@ func TestBexioClientEditTimesheet(t *testing.T) {
 		Text:            request.Text,
 		ContactID:       request.ContactID,
 		PrProjectID:     request.PrProjectID,
+		SubContactID:    request.SubContactID,
 		Tracking:        request.Tracking,
 	}
 
