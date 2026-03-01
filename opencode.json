@@ -1,0 +1,42 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+        "bexio": {
+            "type": "local",
+            "command": [
+                "go", "run", "."
+            ],
+            "environment": {
+                "BEXIO_API_TOKEN": "{env:BEXIO_API_TOKEN}",
+                "BEXIO_API_BASE_URL": "https://api.bexio.com"
+            }
+        },
+        "codescene": {
+            "command": [
+                "podman",
+                "run",
+                "-i",
+                "--rm",
+                "-e","CS_ACCESS_TOKEN",
+                "-e","CS_MOUNT_PATH=/home/tricktron/github/my-repos/bexio-mcp",
+                "-e", "REQUESTS_CA_BUNDLE=/certs/ca-bundle.crt",
+                "-e", "SSL_CERT_FILE=/certs/ca-bundle.crt",
+                "-e", "https_proxy",
+                "-e", "http_proxy",
+                "-e", "no_proxy",
+                "--mount", "type=bind,src=/home/tricktron/github/my-repos/bexio-mcp,dst=/mount/,ro",
+                "--mount", "type=bind,src=/etc/ssl/certs/ca-certificates.crt,dst=/certs/ca-bundle.crt,ro",
+                "--mount", "type=bind,src=/home/tricktron/github/my-repos/bexio-mcp/patches/platform_details.py,dst=/app/src/utils/platform_details.py,ro",
+                "--mount", "type=bind,src=/home/tricktron/github/my-repos/bexio-mcp/patches/code_health_analysis.py,dst=/app/src/utils/code_health_analysis.py,ro",
+                "localhost/codescene-mcp:latest"
+            ],
+            "environment": {
+                "CS_ACCESS_TOKEN": "{env:CS_ACCESS_TOKEN}",
+                "HTTPS_PROXY": "{env:HTTPS_PROXY}",
+                "HTTP_PROXY": "{env:HTTP_PROXY}",
+                "NO_PROXY": "{env:NO_PROXY}",
+            },
+            "type": "local"
+        }
+    }
+}

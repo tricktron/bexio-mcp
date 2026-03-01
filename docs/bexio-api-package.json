@@ -1,0 +1,741 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "bexio API"
+  },
+  "servers": [
+    {
+      "url": "https://api.bexio.com",
+      "description": "Live Server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "OpenIDConnect": {
+        "type": "openIdConnect",
+        "description": "OpenID Connect 1.0 is a simple identity layer on top of the OAuth 2.0 protocol. It allows Clients to verify the identity of the End-User based on the authentication performed by an Authorization Server, as well as to obtain basic profile information about the End-User in an interoperable and REST-like manner.",
+        "openIdConnectUrl": "https://auth.bexio.com/realms/bexio/.well-known/openid-configuration"
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "paths": {
+    "/3.0/projects/{project_id}/packages": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Fetch a list of work packages",
+        "description": "This action fetches a list of all work packages for a given project",
+        "operationId": "ListWorkPackages",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Limit the number of results (max is 2000)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 500,
+              "example": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Skip over a number of elements by specifying an offset value for the query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0,
+              "example": 0
+            }
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "the id of the project",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Limit": {
+                "description": "Applied limit for the result list",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "example": 500
+              },
+              "X-Offset": {
+                "description": "Applied offset for the result list",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "example": 0
+              },
+              "X-Total-Count": {
+                "description": "Total number of results for the result list",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "example": 1276
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "title": "Work Package",
+                    "required": [
+                      "name"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "The id of the main resource",
+                        "format": "int32",
+                        "readOnly": true,
+                        "example": 4
+                      },
+                      "name": {
+                        "maxLength": 255,
+                        "type": "string",
+                        "description": "The name of the work package",
+                        "example": "Documentation"
+                      },
+                      "spent_time_in_hours": {
+                        "type": "number",
+                        "description": "time spent on work package",
+                        "example": 0.5
+                      },
+                      "estimated_time_in_hours": {
+                        "type": "number",
+                        "description": "estimated time on work package",
+                        "example": 1.75
+                      },
+                      "comment": {
+                        "maxLength": 10000,
+                        "type": "string",
+                        "description": "Description for work package",
+                        "example": "Crete project documentation"
+                      },
+                      "pr_milestone_id": {
+                        "type": "integer",
+                        "description": "References a [milestone object](#operation/ListMilestones)",
+                        "format": "int32",
+                        "example": 3
+                      }
+                    }
+                  },
+                  "description": "OK"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Error422",
+                  "type": "object",
+                  "properties": {
+                    "error_code": {
+                      "type": "integer",
+                      "description": "The status code of the HTTP response",
+                      "format": "int32"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "A message describing the error"
+                    }
+                  },
+                  "example": {
+                    "error_code": 422,
+                    "message": "Unprocessable Entity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_show"
+            ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Create work package",
+        "description": "This action creates a new work package",
+        "operationId": "CreateWorkPackage",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "the id of the project",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "Work Package",
+                "required": [
+                  "name"
+                ],
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "The id of the main resource",
+                    "format": "int32",
+                    "readOnly": true,
+                    "example": 4
+                  },
+                  "name": {
+                    "maxLength": 255,
+                    "type": "string",
+                    "description": "The name of the work package",
+                    "example": "Documentation"
+                  },
+                  "spent_time_in_hours": {
+                    "type": "number",
+                    "description": "time spent on work package",
+                    "example": 0.5
+                  },
+                  "estimated_time_in_hours": {
+                    "type": "number",
+                    "description": "estimated time on work package",
+                    "example": 1.75
+                  },
+                  "comment": {
+                    "maxLength": 10000,
+                    "type": "string",
+                    "description": "Description for work package",
+                    "example": "Crete project documentation"
+                  },
+                  "pr_milestone_id": {
+                    "type": "integer",
+                    "description": "References a [milestone object](#operation/ListMilestones)",
+                    "format": "int32",
+                    "example": 3
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Work Package",
+                  "required": [
+                    "name"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "description": "The id of the main resource",
+                      "format": "int32",
+                      "readOnly": true,
+                      "example": 4
+                    },
+                    "name": {
+                      "maxLength": 255,
+                      "type": "string",
+                      "description": "The name of the work package",
+                      "example": "Documentation"
+                    },
+                    "spent_time_in_hours": {
+                      "type": "number",
+                      "description": "time spent on work package",
+                      "example": 0.5
+                    },
+                    "estimated_time_in_hours": {
+                      "type": "number",
+                      "description": "estimated time on work package",
+                      "example": 1.75
+                    },
+                    "comment": {
+                      "maxLength": 10000,
+                      "type": "string",
+                      "description": "Description for work package",
+                      "example": "Crete project documentation"
+                    },
+                    "pr_milestone_id": {
+                      "type": "integer",
+                      "description": "References a [milestone object](#operation/ListMilestones)",
+                      "format": "int32",
+                      "example": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Error422",
+                  "type": "object",
+                  "properties": {
+                    "error_code": {
+                      "type": "integer",
+                      "description": "The status code of the HTTP response",
+                      "format": "int32"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "A message describing the error"
+                    }
+                  },
+                  "example": {
+                    "error_code": 422,
+                    "message": "Unprocessable Entity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_edit"
+            ]
+          }
+        ]
+      }
+    },
+    "/3.0/projects/{project_id}/packages/{package_id}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Fetch a work package",
+        "description": "This action fetches a single work package",
+        "operationId": "ShowWorkPackage",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "the id of the project",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "package_id",
+            "in": "path",
+            "description": "the id of the work package",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 3
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Work Package",
+                  "required": [
+                    "name"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "description": "The id of the main resource",
+                      "format": "int32",
+                      "readOnly": true,
+                      "example": 4
+                    },
+                    "name": {
+                      "maxLength": 255,
+                      "type": "string",
+                      "description": "The name of the work package",
+                      "example": "Documentation"
+                    },
+                    "spent_time_in_hours": {
+                      "type": "number",
+                      "description": "time spent on work package",
+                      "example": 0.5
+                    },
+                    "estimated_time_in_hours": {
+                      "type": "number",
+                      "description": "estimated time on work package",
+                      "example": 1.75
+                    },
+                    "comment": {
+                      "maxLength": 10000,
+                      "type": "string",
+                      "description": "Description for work package",
+                      "example": "Crete project documentation"
+                    },
+                    "pr_milestone_id": {
+                      "type": "integer",
+                      "description": "References a [milestone object](#operation/ListMilestones)",
+                      "format": "int32",
+                      "example": 3
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_show"
+            ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Delete a work package",
+        "description": "This action permanently deletes a work package. It cannot be undone.",
+        "operationId": "DeleteWorkPackage",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "the id of the project",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "package_id",
+            "in": "path",
+            "description": "the id of the work package",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 3
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "EntryDeleted",
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Describes whether the operation was successful or not",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_edit"
+            ]
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Edit a work package",
+        "description": "This action edits a single work package",
+        "operationId": "EditWorkPackage",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "the id of the project",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "package_id",
+            "in": "path",
+            "description": "the id of the work package",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 3
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "Work Package",
+                "required": [
+                  "name"
+                ],
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "The id of the main resource",
+                    "format": "int32",
+                    "readOnly": true,
+                    "example": 4
+                  },
+                  "name": {
+                    "maxLength": 255,
+                    "type": "string",
+                    "description": "The name of the work package",
+                    "example": "Documentation"
+                  },
+                  "spent_time_in_hours": {
+                    "type": "number",
+                    "description": "time spent on work package",
+                    "example": 0.5
+                  },
+                  "estimated_time_in_hours": {
+                    "type": "number",
+                    "description": "estimated time on work package",
+                    "example": 1.75
+                  },
+                  "comment": {
+                    "maxLength": 10000,
+                    "type": "string",
+                    "description": "Description for work package",
+                    "example": "Crete project documentation"
+                  },
+                  "pr_milestone_id": {
+                    "type": "integer",
+                    "description": "References a [milestone object](#operation/ListMilestones)",
+                    "format": "int32",
+                    "example": 3
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Work Package",
+                  "required": [
+                    "name"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "description": "The id of the main resource",
+                      "format": "int32",
+                      "readOnly": true,
+                      "example": 4
+                    },
+                    "name": {
+                      "maxLength": 255,
+                      "type": "string",
+                      "description": "The name of the work package",
+                      "example": "Documentation"
+                    },
+                    "spent_time_in_hours": {
+                      "type": "number",
+                      "description": "time spent on work package",
+                      "example": 0.5
+                    },
+                    "estimated_time_in_hours": {
+                      "type": "number",
+                      "description": "estimated time on work package",
+                      "example": 1.75
+                    },
+                    "comment": {
+                      "maxLength": 10000,
+                      "type": "string",
+                      "description": "Description for work package",
+                      "example": "Crete project documentation"
+                    },
+                    "pr_milestone_id": {
+                      "type": "integer",
+                      "description": "References a [milestone object](#operation/ListMilestones)",
+                      "format": "int32",
+                      "example": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Error422",
+                  "type": "object",
+                  "properties": {
+                    "error_code": {
+                      "type": "integer",
+                      "description": "The status code of the HTTP response",
+                      "format": "int32"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "A message describing the error"
+                    }
+                  },
+                  "example": {
+                    "error_code": 422,
+                    "message": "Unprocessable Entity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "bearerAuth": [
+              "project_edit"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

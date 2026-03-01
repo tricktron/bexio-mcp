@@ -1,0 +1,13 @@
+package main
+
+func filterTimesheetsByDateRange(timesheets []bexioTimesheet, from, to string) []bexioTimesheet {
+	filtered := make([]bexioTimesheet, 0, len(timesheets))
+
+	for _, timesheet := range timesheets {
+		if (from == "" || timesheet.Date >= from) && (to == "" || timesheet.Date <= to) {
+			filtered = append(filtered, timesheet)
+		}
+	}
+
+	return filtered
+}

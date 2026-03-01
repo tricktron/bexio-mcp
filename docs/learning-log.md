@@ -1,0 +1,592 @@
+---
+
+## 2026-02-16: Slice 29 — Add sub_contact_id to timesheets
+
+### Acceptance Test
+- Extended `TestCreateTimesheetAcceptance` and `TestEditTimesheetAcceptance` with `sub_contact_id` field
+- Added `TestSearchTimesheetsWithSubContactIDAcceptance` for search enum coverage
+- Updated `TestRegisteredToolSchemasIncludeEnumConstraints` expected enum
+
+### Architecture
+No structural changes. Field addition within existing MCP Server container.
+
+### Core Classes Discovered
+None — mechanical field addition following `contact_id`/`pr_project_id` pattern.
+
+### Unit Tests
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| N/A | 0 | No new unit tests — acceptance + schema tests sufficient for field passthrough |
+
+### Stats
+- Iterations: 1
+- Files changed: 4 (timesheet.go, timesheet_defaults.go, server_test.go, schema_test.go)
+
+### Discoveries
+None
+
+### Key Decision
+Integrated `sub_contact_id` into existing acceptance tests rather than creating duplicate tests — the field follows an identical pattern to `contact_id` and doesn't warrant separate test functions.
+
+---
+
+## 2026-02-08: Project Setup & Create Timesheet
+
+### Acceptance Test
+- Entry: MCP tool `create_timesheet` over stdio transport
+- Verified: Tool call creates a bexio timesheet via `POST /2.0/timesheet` and returns the created entry
+
+### Architecture
+```mermaid
+graph TD
+    main.go --> BexioClient
+    BexioClient --> BexioAPI[(bexio API)]
+```
+
+### Functional Core
+- BexioClient: HTTP shell client for bexio timesheet creation
+
+### Unit Tests (1)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| BexioClient | 1 | POST /2.0/timesheet with Bearer auth and expected body/response |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+---
+
+## Slice 26: Typed output schemas for lookup tools
+
+### Date
+2026-02-16
+
+### Acceptance Test
+`TestLookupToolsReturnTypedStructuredResponsesAcceptance` — calls each of 6 lookup tools via MCP, decodes into typed wrapper structs, asserts field values match fixtures.
+
+### Core Types Discovered
+- `bexioContact`, `bexioProject`, `bexioService`, `bexioPackage`, `bexioUser` (element types in `lookup.go`)
+- `listContactsResult`, `listProjectsResult`, `listServicesResult`, `listPackagesResult`, `listStatusesResult` (wrapper types in `lookup.go`)
+
+### Unit Tests
+| Component | Test | Behavior |
+| --------- | ---- | -------- |
+| BexioClient | TestBexioClientListContacts | ListContacts returns []bexioContact |
+| BexioClient | TestBexioClientListProjects | ListProjects returns []bexioProject |
+| BexioClient | TestBexioClientSearchProjects | SearchProjects returns []bexioProject |
+| BexioClient | TestBexioClientListClientServices | ListClientServices returns []bexioService |
+| BexioClient | TestBexioClientListPackages | ListPackages returns []bexioPackage |
+
+### Architecture
+- Shell: `main.go` (tool registration with typed TOutput), `bexio_client.go` (HTTP with typed decode)
+- Core: `lookup.go` (response types), `timesheet.go` (existing types)
+
+### TDD Iterations
+3 iterations. Key decisions:
+- Extracted `getAndDecode` helper in BexioClient to reduce duplication across typed conversions
+- Removed dead `getRaw`/`postRaw`/`readRawResponse` methods and `parseCurrentUserID`/`parseTimesheetStatuses` parsers after typed conversion made them obsolete
+
+### Discoveries
+None
+
+---
+
+## 2026-02-15: Typed output schemas for timesheet tools
+
+### Acceptance Test
+- Entry: MCP `tools/list` plus timesheet tool calls in `server_test.go`
+- Verified: typed timesheet tools expose object output schemas and return object-shaped responses compatible with SDK marshaling
+
+### Architecture
+```mermaid
+graph TD
+    Register[registerTool[TInput, TOutput]] --> AddTool[mcp.AddTool[TInput, TOutput]]
+    AddTool --> OutputSchema[SDK-generated outputSchema + marshaling]
+```
+
+### Functional Core
+- `deleteTimesheetResult`: typed delete result envelope (`success`)
+- `searchTimesheetsResult`: typed search result envelope (`results`)
+
+### Unit Tests (2)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| Typed result schemas | 2 | `TestTimesheetResultTypesMarshalAsWrappedObjects`, `TestRegisterToolExposesOutputSchemaForTypedResult` validate object-shaped typed outputs and schema exposure |
+
+### Stats
+- Iterations: 2
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+---
+
+## 2026-02-15: 25-wire-run-startup
+
+### Acceptance Test
+- Entry: `TestRunStartsServerAcceptance`
+- Verified: `run()` starts a functioning MCP server
+
+### Architecture
+```mermaid
+graph TD
+    Run[run()] --> Validate[validateConfig]
+    Validate --> Client[NewBexioClient]
+    Client --> Server[newMCPServer]
+    Server --> Connect[transport connect]
+    Connect --> Wait[session wait]
+```
+
+### Functional Core
+- None new (reuses `validateConfig`, `newMCPServer`, `NewBexioClient`)
+
+### Unit Tests (0)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| N/A | 0 | Acceptance test was sufficient for shell wiring |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+- Key insight: Slice 21 left `run()` as a validation-only stub that never started the server; this slice closed the gap by wiring the full startup and testing it end-to-end through an in-memory MCP transport
+
+---
+
+## 2026-02-15: 19-schema-constraints
+
+### Acceptance Test
+- Entry: `search_timesheets` and `create_timesheet` schema checks in `schema_test.go`
+- Verified: enum and date-pattern constraints are present in registered MCP tool schemas
+
+### Architecture
+```mermaid
+graph TD
+    Register[registerTool] --> SchemaOverrides[timesheet.go]
+    SchemaOverrides --> Tools[MCP tool InputSchema]
+```
+
+### Functional Core
+- `timesheetTypeSchemas`: central enum constraints for timesheet write-path types
+- `searchTypeSchemas`: central enum constraints for search field/criteria types
+
+### Unit Tests (1)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| Schema wiring | 1 | Registered schemas include exact enum values and YYYY-MM-DD date patterns |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+---
+
+## 2026-02-15: 16-merge-list-search-timesheets
+
+### Acceptance Test
+- Entry: `search_timesheets` MCP tool in `server_test.go`
+- Verified: single tool handles list behavior (no filters), search behavior (with `search_fields`), and optional date filtering
+
+### Architecture
+```mermaid
+graph TD
+    MCP[search_timesheets] --> Dispatch[listOrSearchTimesheets]
+    Dispatch --> List[BexioClient.ListTimesheets]
+    Dispatch --> Search[BexioClient.SearchTimesheets]
+    MCP --> DateFilter[filterTimesheetsByOptionalDateRange]
+```
+
+### Functional Core
+- `listOrSearchTimesheets`: single dispatch point for list-vs-search retrieval
+- `filterTimesheetsByOptionalDateRange`: shared post-retrieval date filtering
+
+### Unit Tests (0)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| N/A | 0 | N/A |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+## Slice 15: Fix List Timesheets Missing Recent Entries
+
+**Date:** 2026-02-15
+
+### Problem
+`list_timesheets` returned empty results for recent dates when users had >500 total timesheets. The Bexio API defaults to `order_by=id` (oldest first), `limit=500` — so recent entries weren't in the first page.
+
+### Root Cause
+`BexioClient.ListTimesheets` sent no query params. Client-side date filtering then found nothing in the 500 oldest entries.
+
+### Fix
+Added `order_by=date_desc&limit=2000` query params to `ListTimesheets` and `SearchTimesheets`.
+
+### Key Insight
+The acceptance test (fake API) couldn't catch this because it returns all fixtures in one response. The gap was in the **HTTP boundary test** — `fakeBexioCapturedRequest` didn't capture query params. Strengthening the boundary test to assert query params made the bug visible at the unit test level.
+
+### TDD Loop
+- Iterations: 1 (red→green)
+- Unit tests modified: 2 (`TestBexioClientListTimesheets`, `TestBexioClientSearchTimesheets`)
+- New core classes: none
+
+### Architecture
+No structural changes. Same functional core / imperative shell split.
+
+---
+
+## 2026-02-15: Search Timesheets by Date
+
+### Acceptance Tests
+| Test | Verifies |
+| ---- | -------- |
+| TestListTimesheetsDateRangeFilterAcceptance | list_timesheets with date_from+date_to returns only matching entries |
+| TestListTimesheetsOpenEndedDateRangeAcceptance | list_timesheets with only date_from returns entries from that date onward |
+| TestSearchTimesheetsDateRangeNoResultsAcceptance | search_timesheets with date range excluding all entries returns empty list |
+
+### Architecture
+```mermaid
+graph TD
+    MCP[list_timesheets / search_timesheets] --> Filter[filterTimesheetsByOptionalDateRange]
+    Filter --> Core[filterTimesheetsByDateRange]
+    MCP --> BexioClient
+    BexioClient --> API[(bexio API)]
+```
+
+### Core Classes Discovered
+- `filterTimesheetsByDateRange` — pure function: inclusive date filtering with open-ended bounds (empty string = no bound)
+- `filterTimesheetsByOptionalDateRange` — nil-safe Shell wrapper
+- `timesheetDateRangeFilter` — shared embedded struct for DateFrom/DateTo input fields
+
+### Unit Tests
+| Test | Component | Behavior |
+| ---- | --------- | -------- |
+| TestFilterTimesheetsByDate/inclusive range | filterTimesheetsByDateRange | Both bounds set, returns only matching |
+| TestFilterTimesheetsByDate/from only | filterTimesheetsByDateRange | Open upper bound |
+| TestFilterTimesheetsByDate/to only | filterTimesheetsByDateRange | Open lower bound |
+| TestFilterTimesheetsByDate/both empty | filterTimesheetsByDateRange | No bounds, returns all |
+
+### Stats
+- Iterations: 3 (AC1 → AC3 → AC2)
+
+### Discoveries
+None
+
+### Recall Answers
+Skipped
+
+---
+
+## 2026-02-14: Real API Contract Tests (Environment-Polymorphic)
+
+### Acceptance Test
+- Entry: `server_contract_test.go` contract tests via `go test ./... -run TestContract -v`
+- Verified: Same observable contracts hold in fake mode and optional real mode for create/list timesheet and list contacts/client services
+
+### Architecture
+```mermaid
+graph TD
+    ContractTests[server_contract_test.go] --> MCPServer[newMCPServer]
+    MCPServer --> BexioClient
+    BexioClient --> BexioAPI[(api.bexio.com or httptest fake)]
+```
+
+### Functional Core
+- contractTestEnv: Environment selection and cleanup strategy for fake/real contract runs
+
+### Unit Tests (0)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| N/A | 0 | N/A |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+## Slice 05: Timesheet Status & Current User
+
+### Acceptance Tests
+- `TestListTimesheetStatusesAcceptance`: calls `list_timesheet_statuses`, verifies GET /2.0/timesheet_status, response contains "Erledigt"
+- `TestGetCurrentUserAcceptance`: calls `get_current_user`, verifies GET /3.0/users/me, response contains "Rudolph"
+
+### Architecture
+No structural changes - both tools reuse the existing `getRaw` shell pattern.
+
+### Core Classes Discovered
+None.
+
+### Unit Tests
+None needed - no new core logic.
+
+### Observations
+- Both endpoints are pure HTTP passthrough with no domain logic
+- The slice as written doesn't contain the "resolve defaults" behavior - that logic would live in a future slice that uses these lookup tools
+- TDD ceremony was skipped since there was no new behavior to drive
+
+## Slice 03: Lookup Tools (Contacts, Projects, Packages, Services)
+
+### Acceptance Tests
+| Test | Verifies |
+| ---- | -------- |
+| TestListContactsAcceptance | list_contacts → GET /2.0/contact → returns contacts |
+| TestListProjectsAcceptance | list_projects with contact_id → POST /2.0/pr_project/search → returns projects |
+| TestListPackagesAcceptance | list_packages with project_id → GET /3.0/projects/{id}/packages → returns packages |
+| TestListClientServicesAcceptance | list_client_services → GET /2.0/client_service → returns services |
+
+### Architecture
+```mermaid
+graph LR
+    MCP[MCP Tools] --> BC[BexioClient]
+    BC --> |getRaw| GET[GET endpoints]
+    BC --> |postRaw| POST[POST /search]
+    GET --> contacts[/2.0/contact]
+    GET --> services[/2.0/client_service]
+    GET --> packages[/3.0/projects/id/packages]
+    POST --> projects[/2.0/pr_project/search]
+```
+
+### Core Classes Discovered
+None — all lookup tools are thin shells passing raw JSON through.
+
+### Unit Tests
+| Test | Component | Behavior |
+| ---- | --------- | -------- |
+| TestBexioClientListContacts | BexioClient | GET /2.0/contact with auth, returns raw JSON |
+| TestBexioClientListClientServices | BexioClient | GET /2.0/client_service with auth, returns raw JSON |
+| TestBexioClientListPackages | BexioClient | GET /3.0/projects/5/packages with auth, returns raw JSON |
+| TestBexioClientSearchProjects | BexioClient | POST /2.0/pr_project/search with contact_id filter |
+
+### Discoveries
+None.
+
+### Iterations
+4 (one per tool)
+
+### Refactoring Highlights
+- Extracted `getRaw`/`postRaw`/`readRawResponse` helpers to eliminate duplication
+- Extracted generic `registerTool[TInput]` to reduce MCP tool registration boilerplate
+- Moved lookup input DTOs to `lookup.go`
+- Removed empty `contact.go` placeholder
+
+---
+
+## 2026-02-13: Edit & Delete Timesheet
+
+### Acceptance Test
+- Entry: MCP tools `edit_timesheet` and `delete_timesheet`
+- Verified: Tool calls map to `POST /2.0/timesheet/{id}` and `DELETE /2.0/timesheet/{id}` and return updated/deletion responses
+
+### Architecture
+```mermaid
+graph TD
+    MCPServer[newMCPServer] --> BexioClient
+    BexioClient --> TimesheetCore[Timesheet Models]
+```
+
+### Functional Core
+- bexioEditTimesheetRequest: MCP envelope combining `id` with editable timesheet fields
+- bexioDeleteTimesheetRequest: MCP envelope for delete-by-id input
+
+### Unit Tests (2)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| BexioClient | 2 | POST edit payload to `/2.0/timesheet/{id}`, DELETE `/2.0/timesheet/{id}` and return raw success body |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+---
+
+## 2026-02-13: Auto-resolve Timesheet Defaults
+
+### Acceptance Test
+- `TestCreateTimesheetAutoResolveDefaultsAcceptance`: calls `create_timesheet` without `user_id`/`status_id`, verifies POST body contains resolved user_id=4 (from /users/me) and status_id=2 (from /timesheet_status -> "Erledigt")
+
+### Architecture
+```mermaid
+graph TD
+    MCP[create_timesheet handler] --> Parse[parseCurrentUserID / parseTimesheetStatuses]
+    MCP --> Resolve[resolveTimesheetDefaults]
+    Resolve --> Request[bexioCreateTimesheetRequest]
+    MCP --> BexioClient
+    BexioClient --> API[(bexio API)]
+```
+
+### Core Classes Discovered
+- `resolveTimesheetDefaults` — pure mapper: optional inputs + lookup results -> resolved request
+- `resolveUserID` / `resolveStatusID` — resolution helpers
+- `parseCurrentUserID` / `parseTimesheetStatuses` — JSON -> domain type parsers
+- `timesheetStatus` — `{ID, Name}` domain type
+- `createTimesheetInput` — MCP-facing input with optional user_id/status_id
+
+### Unit Tests
+| Test | Component | Behavior |
+| ---- | --------- | -------- |
+| TestResolveTimesheetDefaults (3 cases) | resolveTimesheetDefaults | Resolves missing defaults, preserves explicit values |
+| TestParseCurrentUserID (2 cases) | parseCurrentUserID | Parses user ID from JSON, errors on malformed |
+| TestParseTimesheetStatuses (2 cases) | parseTimesheetStatuses | Parses status list from JSON, errors on malformed |
+
+### Stats
+- Iterations: 3
+
+### Discoveries
+None
+
+### Recall Answers
+Skipped
+
+---
+
+## 2026-02-14: Fix Smoke Test Findings
+
+### Acceptance Test
+- Entry: `go test ./...` via `server_test.go`
+- Verified: `TestListTimesheetsAcceptance` returns realistic datetime tracking and core timesheet fields; `TestListProjectsWithoutContactIDAcceptance` uses `GET /2.0/pr_project` when `contact_id` is absent.
+
+### Architecture
+```mermaid
+graph TD
+    MCPTools[list_timesheets / list_projects] --> BexioClient
+    BexioClient --> BexioAPI[(bexio API)]
+```
+
+### Functional Core
+- None: no new core classes in this slice.
+
+### Unit Tests (2)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| BexioClient | 2 | Decodes core timesheet response fields in list responses; lists projects via `GET /2.0/pr_project` |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+---
+
+## 2026-02-14: Separate Acceptance and Client Test Concerns
+
+### Acceptance Test
+- Entry: `go test ./...`
+- Verified: All tests pass, `server_test.go` contains zero `env.fakeAPI.Received()` assertions, `bexio_client_test.go` covers HTTP contract assertions for every BexioClient method, `server_contract_test.go` unchanged
+
+### Architecture
+No structural changes — pure test refactor.
+
+### Functional Core
+None — test-only changes.
+
+### Unit Tests
+No new tests. Existing 12 client tests in `bexio_client_test.go` already covered all HTTP contracts.
+
+### Stats
+- Lines removed: 130 (server_test.go 834 → 704)
+- Assertions removed: 13 `env.fakeAPI.Received()` blocks
+- Files changed: 1 (server_test.go)
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+---
+
+## 2026-02-15: 20-duration-tracking-type
+
+### Acceptance Test
+- Entry: `create_timesheet` in `server_test.go` (`TestCreateTimesheetDurationTrackingAcceptance`)
+- Verified: duration tracking sends `type/date/duration` and omits `start/end` in the request payload
+
+### Architecture
+```mermaid
+graph TD
+    MCPCreate[create_timesheet shell] --> TrackingMarshal[trackingRange.MarshalJSON core]
+    TrackingMarshal --> BexioPayload[duration vs range payload shape]
+```
+
+### Functional Core
+- `trackingRange.MarshalJSON`: serializes duration and range tracking to the correct wire format
+
+### Unit Tests (2)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| `trackingRange` marshaling | 2 | Duration omits start/end; range omits duration while keeping start/end |
+
+### Stats
+- Iterations: 1
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
+
+---
+
+## 2026-02-15: 21-startup-validation
+
+### Acceptance Test
+- Entry: `run` startup path in `main_startup_validation_test.go`
+- Verified: empty token exits non-zero with `BEXIO_API_TOKEN`, empty base URL exits non-zero with `BEXIO_API_BASE_URL`, valid env proceeds normally
+
+### Architecture
+```mermaid
+graph TD
+    Main[main.run shell] --> Validate[validateConfig core]
+```
+
+### Functional Core
+- `validateConfig`: validates required startup env vars before server startup proceeds
+
+### Unit Tests (1)
+| Component | Tests | Behaviors |
+| --------- | ----- | --------- |
+| `validateConfig` | 1 | validates empty token returns error, validates empty base URL returns error |
+
+### Stats
+- Iterations: 3
+
+### Discoveries
+None
+
+### Recall Answers
+N/A
